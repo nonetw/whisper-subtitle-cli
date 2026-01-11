@@ -117,12 +117,22 @@ def main(video_input, model, language, output, keep_audio):
                         output_dir = Path.cwd()
 
                     srt_path = output_dir / f"{base_name}.srt"
+                    timestamped_txt_path = output_dir / f"{base_name}.timestamped.txt"
 
                     # Download subtitle
                     downloader.download_subtitle(video_input, selected_lang, str(srt_path))
 
+                    # Parse the downloaded SRT and create timestamped TXT
+                    writer = SubtitleWriter()
+                    segments = writer.parse_srt(str(srt_path))
+                    writer.write_timestamped_txt(segments, str(timestamped_txt_path))
+
                     click.echo(f"✓ Subtitle downloaded: {srt_path}")
+                    click.echo(f"✓ Timestamped text created: {timestamped_txt_path}")
                     click.echo("\n✅ Done! Subtitle download complete.")
+                    click.echo(f"\nOutput files:")
+                    click.echo(f"  • {srt_path.name} (for video playback)")
+                    click.echo(f"  • {timestamped_txt_path.name} (easy to copy/translate)")
                     return  # Exit early, skip transcription
 
             # No subtitles or user chose to transcribe
@@ -159,6 +169,7 @@ def main(video_input, model, language, output, keep_audio):
         audio_path = output_dir / f"{base_name}.wav"
         srt_path = output_dir / f"{base_name}.srt"
         txt_path = output_dir / f"{base_name}.txt"
+        timestamped_txt_path = output_dir / f"{base_name}.timestamped.txt"
 
         # Step 1: Extract audio
         step_num = "[1/4]" if is_url(video_input) else "[1/3]"
@@ -190,6 +201,9 @@ def main(video_input, model, language, output, keep_audio):
         writer.write_txt(segments, str(txt_path))
         click.echo(f"✓ Text file created: {txt_path}")
 
+        writer.write_timestamped_txt(segments, str(timestamped_txt_path))
+        click.echo(f"✓ Timestamped text created: {timestamped_txt_path}")
+
         # Clean up audio file if not keeping it
         if not keep_audio and audio_path.exists():
             audio_path.unlink()
@@ -201,6 +215,7 @@ def main(video_input, model, language, output, keep_audio):
         click.echo(f"\nOutput files:")
         click.echo(f"  • {srt_path.name} (for video playback)")
         click.echo(f"  • {txt_path.name} (for reading)")
+        click.echo(f"  • {timestamped_txt_path.name} (easy to copy/translate)")
 
     except FileNotFoundError as e:
         click.echo(f"\n❌ Error: {e}", err=True)

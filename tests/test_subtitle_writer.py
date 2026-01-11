@@ -107,3 +107,85 @@ class TestSubtitleWriter:
             assert txt_path.exists()
             assert srt_path.read_text() == ""
             assert txt_path.read_text() == ""
+
+    def test_write_timestamped_txt_creates_file(self, sample_segments):
+        """Test that timestamped text file is created."""
+        writer = SubtitleWriter()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "test.timestamped.txt"
+            writer.write_timestamped_txt(sample_segments, str(output_path))
+
+            assert output_path.exists()
+
+    def test_write_timestamped_txt_correct_format(self, sample_segments):
+        """Test that timestamped text file has correct format."""
+        writer = SubtitleWriter()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "test.timestamped.txt"
+            writer.write_timestamped_txt(sample_segments, str(output_path))
+
+            content = output_path.read_text()
+
+            # Should have timestamps in brackets followed by text
+            assert "[00:00:00,000 --> 00:00:02,500] Hello, world!" in content
+            assert "[00:00:02,500 --> 00:00:05,000] This is a test." in content
+            assert "[00:00:05,000 --> 00:00:08,300] Testing subtitle generation." in content
+
+            # Should NOT have sequence numbers
+            assert not content.startswith("1\n")
+
+    def test_parse_srt_reads_file(self, sample_segments):
+        """Test that SRT file can be parsed back to segments."""
+        writer = SubtitleWriter()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            srt_path = Path(tmpdir) / "test.srt"
+            writer.write_srt(sample_segments, str(srt_path))
+
+            # Parse it back
+            parsed_segments = SubtitleWriter.parse_srt(str(srt_path))
+
+            assert len(parsed_segments) == 3
+            assert parsed_segments[0]['text'] == 'Hello, world!'
+            assert parsed_segments[1]['text'] == 'This is a test.'
+            assert parsed_segments[2]['text'] == 'Testing subtitle generation.'
+
+    def test_parse_srt_preserves_timestamps(self, sample_segments):
+        """Test that parsing SRT preserves timestamp information."""
+        writer = SubtitleWriter()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            srt_path = Path(tmpdir) / "test.srt"
+            writer.write_srt(sample_segments, str(srt_path))
+
+            # Parse it back
+            parsed_segments = SubtitleWriter.parse_srt(str(srt_path))
+
+            # Check timestamps are preserved (with small tolerance for float precision)
+            assert abs(parsed_segments[0]['start'] - 0.0) < 0.01
+            assert abs(parsed_segments[0]['end'] - 2.5) < 0.01
+            assert abs(parsed_segments[1]['start'] - 2.5) < 0.01
+            assert abs(parsed_segments[1]['end'] - 5.0) < 0.01
+
+    def test_parse_srt_roundtrip(self, sample_segments):
+        """Test that write_srt -> parse_srt -> write_srt produces same content."""
+        writer = SubtitleWriter()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            srt_path1 = Path(tmpdir) / "test1.srt"
+            srt_path2 = Path(tmpdir) / "test2.srt"
+
+            # Write original
+            writer.write_srt(sample_segments, str(srt_path1))
+
+            # Parse and write again
+            parsed = SubtitleWriter.parse_srt(str(srt_path1))
+            writer.write_srt(parsed, str(srt_path2))
+
+            # Content should be identical
+            content1 = srt_path1.read_text()
+            content2 = srt_path2.read_text()
+
+            assert content1 == content2

@@ -1,5 +1,6 @@
 from typing import List, Dict
 from pathlib import Path
+import re
 
 
 class SubtitleWriter:
@@ -66,6 +67,94 @@ class SubtitleWriter:
         content = "\n\n".join(text_lines)
 
         Path(output_path).write_text(content, encoding='utf-8')
+
+    def write_timestamped_txt(self, segments: List[Dict], output_path: str) -> None:
+        """
+        Write segments to a timestamped text file.
+
+        Format: One line per segment with inline timestamp.
+        Perfect for copying to translation tools while preserving timing.
+
+        Example:
+        [00:00:00,000 --> 00:00:02,500] Hello, world!
+        [00:00:02,500 --> 00:00:05,000] This is a test.
+
+        Args:
+            segments: List of segments with 'start', 'end', 'text' keys
+            output_path: Path to save the timestamped text file
+        """
+        if not segments:
+            Path(output_path).write_text("")
+            return
+
+        lines = []
+        for segment in segments:
+            start_time = self._format_timestamp(segment['start'])
+            end_time = self._format_timestamp(segment['end'])
+            text = segment['text']
+            lines.append(f"[{start_time} --> {end_time}] {text}")
+
+        content = "\n".join(lines)
+        Path(output_path).write_text(content, encoding='utf-8')
+
+    @staticmethod
+    def parse_srt(srt_path: str) -> List[Dict]:
+        """
+        Parse an SRT file into a list of segments.
+
+        Args:
+            srt_path: Path to the SRT file
+
+        Returns:
+            List of segments with 'start', 'end', 'text' keys
+
+        Raises:
+            FileNotFoundError: If SRT file doesn't exist
+        """
+        content = Path(srt_path).read_text(encoding='utf-8')
+
+        # Split into blocks (separated by double newlines)
+        blocks = re.split(r'\n\n+', content.strip())
+
+        segments = []
+        for block in blocks:
+            lines = block.strip().split('\n')
+            if len(lines) < 3:
+                continue  # Skip malformed blocks
+
+            # Line 0: sequence number (ignore)
+            # Line 1: timestamp
+            # Line 2+: text content
+
+            timestamp_line = lines[1]
+            text = '\n'.join(lines[2:])
+
+            # Parse timestamp: "00:00:00,000 --> 00:00:02,500"
+            match = re.match(r'(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})', timestamp_line)
+            if match:
+                start_h, start_m, start_s, start_ms, end_h, end_m, end_s, end_ms = match.groups()
+
+                start_seconds = (
+                    int(start_h) * 3600 +
+                    int(start_m) * 60 +
+                    int(start_s) +
+                    int(start_ms) / 1000
+                )
+
+                end_seconds = (
+                    int(end_h) * 3600 +
+                    int(end_m) * 60 +
+                    int(end_s) +
+                    int(end_ms) / 1000
+                )
+
+                segments.append({
+                    'start': start_seconds,
+                    'end': end_seconds,
+                    'text': text
+                })
+
+        return segments
 
     def _format_timestamp(self, seconds: float) -> str:
         """
