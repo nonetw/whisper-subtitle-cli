@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Poetry
+poetry.lock
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated output files (videos, audio, subtitles)
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.webm
+*.flv
+*.wav
+*.mp3
+*.srt
+*.txt
+
+# Except documentation
+!README.md
+!CLAUDE.md

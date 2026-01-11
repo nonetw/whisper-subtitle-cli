@@ -1,0 +1,110 @@
+# Video Subtitle Extractor
+
+## Project Overview
+CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI model.
+
+## Requirements
+- Extract audio from video files
+- Transcribe audio using Whisper AI (speech-to-text)
+- Output SRT format (with timestamps)
+- Output plain text format (for easy reading)
+- Support common video formats: MP4, MKV, AVI, MOV, WebM
+
+## Technical Stack
+- **Python 3.11+**
+- **Poetry** for package management
+- **OpenAI Whisper** for AI transcription
+- **ffmpeg** (system dependency) for audio extraction
+
+## Output Files
+For input `video.mp4`:
+- `video.srt` - SRT subtitle file with timestamps
+- `video.txt` - Plain text transcript without timestamps
+
+## Configuration Options
+- Whisper model size: tiny, base, small, medium, large (default: base)
+- Language: auto-detect or specify (e.g., en, zh, es)
+- Output directory
+
+## Project Structure
+```
+video-subtitle/
+├── src/
+│   ├── transcriber.py    # Whisper transcription logic
+│   ├── subtitle_writer.py # SRT and TXT file generation
+│   └── audio_extractor.py # Audio extraction from video
+├── main.py               # CLI entry point
+├── tests/
+│   ├── test_transcriber.py
+│   ├── test_subtitle_writer.py
+│   └── test_audio_extractor.py
+├── pyproject.toml
+└── CLAUDE.md
+```
+
+## Dependencies
+- openai-whisper
+- ffmpeg-python (Python wrapper)
+- click (for CLI interface)
+- pytest (for testing)
+
+## Current Status
+✅ **Implementation Complete**
+
+All core features implemented and tested:
+- ✅ Audio extraction from video files
+- ✅ AI transcription using Faster Whisper
+- ✅ SRT subtitle file generation
+- ✅ Plain text file generation
+- ✅ CLI interface with options
+- ✅ 20/20 unit tests passing
+
+## Usage
+
+### Basic Usage
+```bash
+# Extract subtitles from a video
+python main.py video.mp4
+
+# This creates:
+# - video.srt (subtitle file with timestamps)
+# - video.txt (plain text for reading)
+```
+
+### Advanced Options
+```bash
+# Use a larger model for better accuracy (slower)
+python main.py video.mp4 --model medium
+
+# Specify language (faster than auto-detect)
+python main.py video.mp4 --language en
+
+# Save to a different directory
+python main.py video.mp4 --output ./subtitles
+
+# Keep the extracted audio file
+python main.py video.mp4 --keep-audio
+```
+
+### Available Models
+- **tiny**: Fastest, least accurate (~39MB)
+- **base**: Good balance (default, ~140MB)
+- **small**: Better accuracy (~470MB)
+- **medium**: High accuracy (~1.5GB)
+- **large**: Best accuracy (~2.9GB)
+
+## Testing
+```bash
+# Run all tests
+poetry run pytest -v
+
+# Run specific test file
+poetry run pytest tests/test_transcriber.py -v
+```
+
+## Next Steps (Optional Enhancements)
+- Add support for batch processing multiple videos
+- Add progress bars for long videos
+- Support for additional subtitle formats (VTT, ASS)
+- GPU acceleration support (CUDA)
+- Web interface
