@@ -90,7 +90,7 @@ def main(video_input, model, language, output, keep_audio):
 
     Generates two files:
     - .srt file (for video players with timestamps)
-    - .txt file (plain text for easy reading)
+    - .timestamped.txt file (timestamped text for easy reading/translation)
 
     Example:
         python main.py video.mp4
@@ -142,12 +142,12 @@ def main(video_input, model, language, output, keep_audio):
                     # Get date prefix from video upload date
                     date_prefix = get_date_prefix(upload_date=video_info.get('upload_date'))
 
-                    # Determine output directory
+                    # Determine output directory (use temp directory for URL downloads)
                     if output:
                         output_dir = Path(output)
                         output_dir.mkdir(parents=True, exist_ok=True)
                     else:
-                        output_dir = Path.cwd()
+                        output_dir = downloader.download_dir  # Use temp directory
 
                     srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
                     timestamped_txt_path = output_dir / f"{date_prefix}_{base_name}.timestamped.txt"
@@ -166,6 +166,8 @@ def main(video_input, model, language, output, keep_audio):
                     click.echo(f"\nOutput files:")
                     click.echo(f"  • {srt_path.name} (for video playback)")
                     click.echo(f"  • {timestamped_txt_path.name} (easy to copy/translate)")
+                    click.echo(f"\nOutput location:")
+                    click.echo(f"  {output_dir}")
                     return  # Exit early, skip transcription
 
             # No subtitles or user chose to transcribe
@@ -204,12 +206,12 @@ def main(video_input, model, language, output, keep_audio):
             output_dir = Path(output)
             output_dir.mkdir(parents=True, exist_ok=True)
         else:
-            output_dir = video_path.parent
+            # For local files, use file's directory; for URLs, use temp directory
+            output_dir = video_path.parent if not is_url_input else video_path.parent
 
         # Generate output file paths with date prefix
         audio_path = output_dir / f"{date_prefix}_{base_name}.wav"
         srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
-        txt_path = output_dir / f"{date_prefix}_{base_name}.txt"
         timestamped_txt_path = output_dir / f"{date_prefix}_{base_name}.timestamped.txt"
 
         # Step 1: Extract audio
@@ -239,9 +241,6 @@ def main(video_input, model, language, output, keep_audio):
         writer.write_srt(segments, str(srt_path))
         click.echo(f"✓ SRT file created: {srt_path}")
 
-        writer.write_txt(segments, str(txt_path))
-        click.echo(f"✓ Text file created: {txt_path}")
-
         writer.write_timestamped_txt(segments, str(timestamped_txt_path))
         click.echo(f"✓ Timestamped text created: {timestamped_txt_path}")
 
@@ -255,13 +254,11 @@ def main(video_input, model, language, output, keep_audio):
         click.echo("\n✅ Done! Subtitle extraction complete.")
         click.echo(f"\nOutput files:")
         click.echo(f"  • {srt_path.name} (for video playback)")
-        click.echo(f"  • {txt_path.name} (for reading)")
         click.echo(f"  • {timestamped_txt_path.name} (easy to copy/translate)")
 
-        # Show temp directory path for URL downloads
-        if is_url_input and temp_dir_path:
-            click.echo(f"\nDownloaded video location:")
-            click.echo(f"  {temp_dir_path}")
+        # Show output directory path
+        click.echo(f"\nOutput location:")
+        click.echo(f"  {output_dir}")
 
     except FileNotFoundError as e:
         click.echo(f"\n❌ Error: {e}", err=True)

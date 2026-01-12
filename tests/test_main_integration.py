@@ -71,7 +71,7 @@ class TestMainWithURLInput:
             mock_extractor_instance.extract_audio.assert_called_once()
             mock_transcriber_instance.transcribe.assert_called_once()
             mock_writer_instance.write_srt.assert_called_once()
-            mock_writer_instance.write_txt.assert_called_once()
+            mock_writer_instance.write_timestamped_txt.assert_called_once()
 
     @patch('main.SubtitleWriter')
     @patch('main.Transcriber')

@@ -6,8 +6,8 @@ CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI mo
 ## Requirements
 - Extract audio from video files or YouTube URLs
 - Transcribe audio using Whisper AI (speech-to-text)
-- Output SRT format (with timestamps)
-- Output plain text format (for easy reading)
+- Output SRT format (with timestamps for video playback)
+- Output timestamped text format (for easy reading/translation)
 - Support common video formats: MP4, MKV, AVI, MOV, WebM
 - Support YouTube and 1000+ other video platforms via URLs
 
@@ -19,17 +19,19 @@ CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI mo
 - **yt-dlp** for downloading videos from URLs
 
 ## Output Files
-All subtitle files include a date prefix (YYYYMMDD format) and use underscores instead of spaces for easier command line usage:
+All subtitle files include a date prefix (YYYYMMDD format) and use underscores instead of spaces for easier command line usage.
 
-For YouTube URLs:
-- `YYYYMMDD_video_title.srt` - SRT subtitle file with timestamps
-- `YYYYMMDD_video_title.txt` - Plain text transcript without timestamps
-- `YYYYMMDD_video_title.timestamped.txt` - Timestamped text for translation
+**Generated Files**:
+- `YYYYMMDD_video_title.srt` - SRT subtitle file with timestamps (for video playback)
+- `YYYYMMDD_video_title.timestamped.txt` - Timestamped text (for easy reading/translation)
 
-For local files (e.g., `my video.mp4`):
-- `YYYYMMDD_my_video.srt` - SRT subtitle file with timestamps
-- `YYYYMMDD_my_video.txt` - Plain text transcript without timestamps
-- `YYYYMMDD_my_video.timestamped.txt` - Timestamped text for translation
+**Output Location**:
+- **YouTube/URL inputs**: Saved to system temp directory (platform-specific)
+  - macOS/Linux: `/tmp/`
+  - Windows: `%TEMP%`
+  - OS automatically cleans up temp files
+- **Local video files**: Saved to same directory as the video file
+- **Custom output**: Use `--output` flag to specify custom directory
 
 **Filename Rules**:
 - Spaces are replaced with underscores (`_`)
@@ -82,8 +84,9 @@ All core features implemented and tested:
 - ✅ Subtitle download from YouTube (human-made subtitles only)
 - ✅ AI transcription using Faster Whisper
 - ✅ SRT subtitle file generation
-- ✅ Plain text file generation
+- ✅ Timestamped text file generation
 - ✅ CLI interface with options
+- ✅ Temp directory output for URL downloads
 - ✅ 51/51 unit tests passing
 
 ## Usage
@@ -92,17 +95,18 @@ All core features implemented and tested:
 ```bash
 # Extract subtitles from a local video file
 python main.py video.mp4
+# Creates files in same directory as video:
+# - YYYYMMDD_video.srt (subtitle file with timestamps)
+# - YYYYMMDD_video.timestamped.txt (for translation/reading)
 
 # Extract subtitles from a YouTube URL
 python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
+# Creates files in system temp directory (/tmp/ on macOS/Linux)
+# - YYYYMMDD_video_title.srt
+# - YYYYMMDD_video_title.timestamped.txt
 
 # Short YouTube URL format
 python main.py "https://youtu.be/VIDEO_ID"
-
-# This creates files with date prefix:
-# - YYYYMMDD_video.srt (subtitle file with timestamps)
-# - YYYYMMDD_video.txt (plain text for reading)
-# - YYYYMMDD_video.timestamped.txt (for translation)
 ```
 
 ### Advanced Options
@@ -128,8 +132,9 @@ python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 # Works with playlists, shorts, and other platforms
 python main.py "https://vimeo.com/123456"
 
-# Downloaded videos are saved to system temp directory (OS cleans up automatically)
-# Subtitles are named after the video title
+# Both downloaded videos and subtitle files are saved to system temp directory
+# OS cleans up temp files automatically
+# Subtitles are named after the video title with date prefix
 ```
 
 ### Subtitle Download (YouTube)
@@ -159,7 +164,7 @@ Downloading English subtitle...
 - Much faster than transcription (~1 second vs 30-120 seconds)
 - If no subtitles exist, automatically falls back to transcription
 - Option 0 allows transcription even when subtitles are available
-- Only creates SRT file when downloading subtitles (no TXT file)
+- Creates both SRT and timestamped TXT files when downloading subtitles
 
 ### Available Models
 - **tiny**: Fastest, least accurate (~39MB)

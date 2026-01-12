@@ -45,8 +45,8 @@ class TestSanitizeFilename:
         result = VideoDownloader.sanitize_filename("Video: Test / Example")
         assert "/" not in result
         assert ":" not in result
-        # Should replace with safe characters
-        assert result == "Video_ Test _ Example"
+        # Should replace invalid chars and spaces with underscores
+        assert result == "Video__Test___Example"
 
     def test_sanitize_filename_truncates_long_names(self):
         """Test that very long filenames are truncated."""
