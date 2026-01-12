@@ -85,9 +85,10 @@ All core features implemented and tested:
 - ✅ AI transcription using Faster Whisper
 - ✅ SRT subtitle file generation
 - ✅ Timestamped text file generation
+- ✅ Split timestamped files into chunks for AI translation
 - ✅ CLI interface with options
 - ✅ Temp directory output for URL downloads
-- ✅ 51/51 unit tests passing
+- ✅ 65/65 unit tests passing
 
 ## Usage
 
@@ -165,6 +166,34 @@ Downloading English subtitle...
 - If no subtitles exist, automatically falls back to transcription
 - Option 0 allows transcription even when subtitles are available
 - Creates both SRT and timestamped TXT files when downloading subtitles
+
+### Splitting Timestamped Files for Translation
+After processing a video, you'll be prompted to split the timestamped file into smaller chunks for AI translation:
+
+```bash
+✓ Timestamped text created: 20260112_video.timestamped.txt
+
+Would you like to split the file into chunks for translation? [y/N]: y
+How many segments per chunk? [100]: 100
+
+✓ Created 5 chunk files:
+  • 20260112_video.timestamped.chunk001of005.txt
+  • 20260112_video.timestamped.chunk002of005.txt
+  • 20260112_video.timestamped.chunk003of005.txt
+  • 20260112_video.timestamped.chunk004of005.txt
+  • 20260112_video.timestamped.chunk005of005.txt
+```
+
+**Why split files?**
+- Large subtitle files exceed AI translation context windows
+- Chunks of 100 segments (~7,000-10,000 chars) work well with most web AI tools
+- Each chunk maintains timestamp format for easy reassembly
+- Chunk filenames show progress (chunk X of Y)
+
+**Chunk file naming**:
+- Format: `{filename}.timestamped.chunk{N:03d}of{total:03d}.txt`
+- Zero-padded numbers for proper sorting
+- Example: `20260112_video.timestamped.chunk001of010.txt`
 
 ### Available Models
 - **tiny**: Fastest, least accurate (~39MB)

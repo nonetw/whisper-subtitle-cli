@@ -162,6 +162,21 @@ def main(video_input, model, language, output, keep_audio):
 
                     click.echo(f"✓ Subtitle downloaded: {srt_path}")
                     click.echo(f"✓ Timestamped text created: {timestamped_txt_path}")
+
+                    # Ask if user wants to split the timestamped file
+                    if click.confirm('\nWould you like to split the file into chunks for translation?', default=False):
+                        segments_per_chunk = click.prompt(
+                            'How many segments per chunk?',
+                            type=click.IntRange(min=1),
+                            default=100
+                        )
+
+                        chunk_files = writer.split_timestamped_txt(str(timestamped_txt_path), segments_per_chunk)
+
+                        click.echo(f"\n✓ Created {len(chunk_files)} chunk files:")
+                        for chunk_file in chunk_files:
+                            click.echo(f"  • {Path(chunk_file).name}")
+
                     click.echo("\n✅ Done! Subtitle download complete.")
                     click.echo(f"\nOutput files:")
                     click.echo(f"  • {srt_path.name} (for video playback)")
@@ -243,6 +258,20 @@ def main(video_input, model, language, output, keep_audio):
 
         writer.write_timestamped_txt(segments, str(timestamped_txt_path))
         click.echo(f"✓ Timestamped text created: {timestamped_txt_path}")
+
+        # Ask if user wants to split the timestamped file
+        if click.confirm('\nWould you like to split the file into chunks for translation?', default=False):
+            segments_per_chunk = click.prompt(
+                'How many segments per chunk?',
+                type=click.IntRange(min=1),
+                default=100
+            )
+
+            chunk_files = writer.split_timestamped_txt(str(timestamped_txt_path), segments_per_chunk)
+
+            click.echo(f"\n✓ Created {len(chunk_files)} chunk files:")
+            for chunk_file in chunk_files:
+                click.echo(f"  • {Path(chunk_file).name}")
 
         # Clean up audio file if not keeping it
         if not keep_audio and audio_path.exists():

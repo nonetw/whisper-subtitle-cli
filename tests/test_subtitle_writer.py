@@ -189,3 +189,222 @@ class TestSubtitleWriter:
             content2 = srt_path2.read_text()
 
             assert content1 == content2
+
+    def test_split_timestamped_txt_creates_chunks(self):
+        """Test splitting creates multiple chunk files with correct naming."""
+        writer = SubtitleWriter()
+
+        # Create 250 segments for testing
+        segments = []
+        for i in range(250):
+            segments.append({
+                'start': i * 2.0,
+                'end': (i + 1) * 2.0,
+                'text': f'Segment {i + 1}'
+            })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create original timestamped.txt file
+            timestamped_path = Path(tmpdir) / "20260112_test_video.timestamped.txt"
+            writer.write_timestamped_txt(segments, str(timestamped_path))
+
+            # Split into chunks of 100 segments
+            chunk_files = writer.split_timestamped_txt(str(timestamped_path), segments_per_chunk=100)
+
+            # Should create 3 chunks (100, 100, 50)
+            assert len(chunk_files) == 3
+
+            # Verify chunk files exist and have correct naming
+            chunk1 = Path(tmpdir) / "20260112_test_video.timestamped.chunk001of003.txt"
+            chunk2 = Path(tmpdir) / "20260112_test_video.timestamped.chunk002of003.txt"
+            chunk3 = Path(tmpdir) / "20260112_test_video.timestamped.chunk003of003.txt"
+
+            assert chunk1.exists()
+            assert chunk2.exists()
+            assert chunk3.exists()
+
+            # Verify returned paths match
+            assert str(chunk1) in chunk_files
+            assert str(chunk2) in chunk_files
+            assert str(chunk3) in chunk_files
+
+    def test_split_timestamped_txt_correct_distribution(self):
+        """Test segments are distributed correctly across chunks."""
+        writer = SubtitleWriter()
+
+        # Create 250 segments
+        segments = []
+        for i in range(250):
+            segments.append({
+                'start': i * 2.0,
+                'end': (i + 1) * 2.0,
+                'text': f'Segment {i + 1}'
+            })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            timestamped_path = Path(tmpdir) / "test.timestamped.txt"
+            writer.write_timestamped_txt(segments, str(timestamped_path))
+
+            # Split into chunks of 100
+            chunk_files = writer.split_timestamped_txt(str(timestamped_path), segments_per_chunk=100)
+
+            # Check first chunk has 100 lines
+            chunk1_content = Path(chunk_files[0]).read_text().splitlines()
+            assert len(chunk1_content) == 100
+
+            # Check second chunk has 100 lines
+            chunk2_content = Path(chunk_files[1]).read_text().splitlines()
+            assert len(chunk2_content) == 100
+
+            # Check third chunk has 50 lines (remainder)
+            chunk3_content = Path(chunk_files[2]).read_text().splitlines()
+            assert len(chunk3_content) == 50
+
+    def test_split_timestamped_txt_preserves_format(self):
+        """Test each chunk maintains timestamped format."""
+        writer = SubtitleWriter()
+
+        segments = []
+        for i in range(150):
+            segments.append({
+                'start': i * 1.5,
+                'end': (i + 1) * 1.5,
+                'text': f'Text segment {i + 1}'
+            })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            timestamped_path = Path(tmpdir) / "test.timestamped.txt"
+            writer.write_timestamped_txt(segments, str(timestamped_path))
+
+            chunk_files = writer.split_timestamped_txt(str(timestamped_path), segments_per_chunk=100)
+
+            # Check each chunk maintains the [HH:MM:SS,mmm --> HH:MM:SS,mmm] format
+            for chunk_file in chunk_files:
+                content = Path(chunk_file).read_text()
+                lines = content.splitlines()
+
+                # Every line should have timestamp format
+                for line in lines:
+                    assert line.startswith('[')
+                    assert '-->' in line
+                    assert ']' in line
+
+    def test_split_timestamped_txt_small_file(self):
+        """Test splitting file smaller than chunk size."""
+        writer = SubtitleWriter()
+
+        # Create only 30 segments
+        segments = []
+        for i in range(30):
+            segments.append({
+                'start': i * 2.0,
+                'end': (i + 1) * 2.0,
+                'text': f'Segment {i + 1}'
+            })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            timestamped_path = Path(tmpdir) / "small.timestamped.txt"
+            writer.write_timestamped_txt(segments, str(timestamped_path))
+
+            # Split with chunk size 100 (larger than file)
+            chunk_files = writer.split_timestamped_txt(str(timestamped_path), segments_per_chunk=100)
+
+            # Should create only 1 chunk
+            assert len(chunk_files) == 1
+
+            # Check filename pattern: chunk001of001
+            chunk_filename = Path(chunk_files[0]).name
+            assert 'chunk001of001' in chunk_filename
+
+            # Verify it has all 30 lines
+            content = Path(chunk_files[0]).read_text().splitlines()
+            assert len(content) == 30
+
+    def test_split_timestamped_txt_exact_multiple(self):
+        """Test splitting file that's exact multiple of chunk size."""
+        writer = SubtitleWriter()
+
+        # Create exactly 200 segments
+        segments = []
+        for i in range(200):
+            segments.append({
+                'start': i * 2.0,
+                'end': (i + 1) * 2.0,
+                'text': f'Segment {i + 1}'
+            })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            timestamped_path = Path(tmpdir) / "exact.timestamped.txt"
+            writer.write_timestamped_txt(segments, str(timestamped_path))
+
+            # Split with chunk size 100 (exactly 2 chunks)
+            chunk_files = writer.split_timestamped_txt(str(timestamped_path), segments_per_chunk=100)
+
+            # Should create exactly 2 chunks
+            assert len(chunk_files) == 2
+
+            # Both chunks should have 100 lines
+            chunk1_content = Path(chunk_files[0]).read_text().splitlines()
+            chunk2_content = Path(chunk_files[1]).read_text().splitlines()
+            assert len(chunk1_content) == 100
+            assert len(chunk2_content) == 100
+
+            # Check filenames
+            assert 'chunk001of002' in Path(chunk_files[0]).name
+            assert 'chunk002of002' in Path(chunk_files[1]).name
+
+    def test_split_timestamped_txt_returns_file_paths(self):
+        """Test method returns list of created file paths."""
+        writer = SubtitleWriter()
+
+        segments = []
+        for i in range(50):
+            segments.append({
+                'start': i * 2.0,
+                'end': (i + 1) * 2.0,
+                'text': f'Segment {i + 1}'
+            })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            timestamped_path = Path(tmpdir) / "test.timestamped.txt"
+            writer.write_timestamped_txt(segments, str(timestamped_path))
+
+            chunk_files = writer.split_timestamped_txt(str(timestamped_path), segments_per_chunk=100)
+
+            # Should return a list
+            assert isinstance(chunk_files, list)
+
+            # Should contain strings (file paths)
+            assert all(isinstance(path, str) for path in chunk_files)
+
+            # All paths should exist
+            assert all(Path(path).exists() for path in chunk_files)
+
+    def test_split_timestamped_txt_filename_format(self):
+        """Test chunk filename format is correct."""
+        writer = SubtitleWriter()
+
+        segments = []
+        for i in range(150):
+            segments.append({
+                'start': i * 2.0,
+                'end': (i + 1) * 2.0,
+                'text': f'Segment {i + 1}'
+            })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Test with date prefix in filename
+            timestamped_path = Path(tmpdir) / "20260112_my_video.timestamped.txt"
+            writer.write_timestamped_txt(segments, str(timestamped_path))
+
+            chunk_files = writer.split_timestamped_txt(str(timestamped_path), segments_per_chunk=100)
+
+            # Should create 2 chunks
+            assert len(chunk_files) == 2
+
+            # Verify filename format preserves base name
+            chunk1_name = Path(chunk_files[0]).name
+            chunk2_name = Path(chunk_files[1]).name
+
+            assert chunk1_name == "20260112_my_video.timestamped.chunk001of002.txt"
+            assert chunk2_name == "20260112_my_video.timestamped.chunk002of002.txt"
