@@ -99,12 +99,17 @@ def main(video_input, model, language, output, keep_audio):
     """
     try:
         # Step 0: Handle URL vs file path
+        is_url_input = False
+        temp_dir_path = None
+
         if is_url(video_input):
+            is_url_input = True
             click.echo(f"Detected URL: {video_input}")
 
             # Check for available subtitles first
             click.echo("\nChecking for available subtitles...")
             downloader = VideoDownloader()  # Uses system temp directory by default
+            temp_dir_path = downloader.download_dir
 
             subtitles = downloader.get_available_subtitles(video_input)
 
@@ -251,6 +256,11 @@ def main(video_input, model, language, output, keep_audio):
         click.echo(f"  • {srt_path.name} (for video playback)")
         click.echo(f"  • {txt_path.name} (for reading)")
         click.echo(f"  • {timestamped_txt_path.name} (easy to copy/translate)")
+
+        # Show temp directory path for URL downloads
+        if is_url_input and temp_dir_path:
+            click.echo(f"\nDownloaded video location:")
+            click.echo(f"  {temp_dir_path}")
 
     except FileNotFoundError as e:
         click.echo(f"\n❌ Error: {e}", err=True)
