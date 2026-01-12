@@ -1,5 +1,5 @@
 [project]
-name = "video-subtitle"
+name = "whisper-subtitle-cli"
 version = "0.1.0"
 requires-python = ">=3.11,<4.0"
 dependencies = [

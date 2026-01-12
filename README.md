@@ -1,4 +1,4 @@
-# Video Subtitle Extractor
+# whisper-subtitle-cli
 
 Extract subtitles from video files or YouTube URLs using AI transcription (OpenAI Whisper). Generates both SRT files for video playback and plain text files for easy reading.
 
@@ -12,33 +12,27 @@ Extract subtitles from video files or YouTube URLs using AI transcription (OpenA
 - **Flexible Models**: Choose from 5 model sizes balancing speed vs accuracy
 - **CLI Interface**: Simple command-line tool with helpful options
 
-## Requirements
-
-- Python 3.11 or 3.12
-- ffmpeg (for audio extraction)
-- Poetry (for package management)
-
-### Install ffmpeg
-
-```bash
-# macOS
-brew install ffmpeg
-
-# Linux (Ubuntu/Debian)
-sudo apt install ffmpeg
-
-# Linux (Fedora)
-sudo dnf install ffmpeg
-```
-
 ## Installation
 
-1. Clone or download this project
+**New to Python or Poetry?** Check out the detailed [Installation Guide](INSTALL.md) for step-by-step instructions.
 
-2. Install dependencies with Poetry:
+### Quick Install (for experienced users)
+
+**Prerequisites:**
+- Python 3.11 or 3.12
+- Poetry
+- ffmpeg
+
 ```bash
+# Install ffmpeg
+brew install ffmpeg  # macOS
+# or: sudo apt install ffmpeg  # Linux
+
+# Install project dependencies
 poetry install --no-root
 ```
+
+See [INSTALL.md](INSTALL.md) for detailed installation instructions including how to install Python, Poetry, and troubleshooting.
 
 ## Usage
 
@@ -227,7 +221,7 @@ poetry run pytest tests/test_transcriber.py -v
 ### Project Structure
 
 ```
-video-subtitle/
+whisper-subtitle-cli/
 ├── src/
 │   ├── audio_extractor.py     # Extract audio from video
 │   ├── transcriber.py          # AI transcription

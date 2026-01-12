@@ -1,4 +1,4 @@
-# Video Subtitle Extractor
+# whisper-subtitle-cli
 
 ## Project Overview
 CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI model.
@@ -43,7 +43,7 @@ For local files (e.g., `video.mp4`):
 
 ## Project Structure
 ```
-video-subtitle/
+whisper-subtitle-cli/
 ├── src/
 │   ├── transcriber.py      # Whisper transcription logic
 │   ├── subtitle_writer.py  # SRT and TXT file generation
