@@ -1,5 +1,6 @@
 import re
 import os
+import tempfile
 from pathlib import Path
 from typing import Optional, Dict
 import yt_dlp
@@ -28,13 +29,15 @@ def is_url(input_str: str) -> bool:
 class VideoDownloader:
     """Downloads videos from URLs using yt-dlp."""
 
-    def __init__(self, download_dir: str = "/tmp"):
+    def __init__(self, download_dir: str = None):
         """
         Initialize video downloader.
 
         Args:
-            download_dir: Directory to save downloaded videos (default: /tmp)
+            download_dir: Directory to save downloaded videos (default: system temp directory)
         """
+        if download_dir is None:
+            download_dir = tempfile.gettempdir()
         self.download_dir = Path(download_dir)
         self.download_dir.mkdir(parents=True, exist_ok=True)
 

@@ -122,7 +122,7 @@ python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 # Works with playlists, shorts, and other platforms
 python main.py "https://vimeo.com/123456"
 
-# Downloaded videos are saved to /tmp (OS cleans up automatically)
+# Downloaded videos are saved to system temp directory (OS cleans up automatically)
 # Subtitles are named after the video title
 ```
 

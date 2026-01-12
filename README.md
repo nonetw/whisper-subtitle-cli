@@ -54,7 +54,7 @@ This creates two files:
 - `video.srt` or `Video_Title.srt` - Subtitle file with timestamps (for video players)
 - `video.txt` or `Video_Title.txt` - Plain text transcript (for reading)
 
-**Note**: When processing URLs, videos are downloaded to `/tmp` and cleaned up automatically by your OS.
+**Note**: When processing URLs, videos are downloaded to your system's temporary directory and cleaned up automatically by your OS.
 
 ### Advanced Options
 

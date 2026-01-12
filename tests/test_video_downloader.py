@@ -66,7 +66,7 @@ class TestVideoDownloader:
     def test_downloader_initialization(self):
         """Test VideoDownloader initializes with correct default directory."""
         downloader = VideoDownloader()
-        assert downloader.download_dir == Path("/tmp")
+        assert downloader.download_dir == Path(tempfile.gettempdir())
 
     def test_downloader_custom_directory(self):
         """Test VideoDownloader can use custom download directory."""
@@ -80,6 +80,9 @@ class TestVideoDownloader:
         # Mock yt-dlp behavior
         mock_instance = MagicMock()
         mock_youtube_dl.return_value.__enter__.return_value = mock_instance
+        temp_dir = tempfile.gettempdir()
+        expected_path = f'{temp_dir}/abc123.mp4'
+
         mock_instance.extract_info.return_value = {
             'id': 'abc123',
             'title': 'Test Video',
@@ -87,12 +90,12 @@ class TestVideoDownloader:
             'extractor': 'youtube',
             'ext': 'mp4'
         }
-        mock_instance.prepare_filename.return_value = '/tmp/abc123.mp4'
+        mock_instance.prepare_filename.return_value = expected_path
 
         downloader = VideoDownloader()
         result = downloader.download("https://www.youtube.com/watch?v=abc123")
 
-        assert result['file_path'] == '/tmp/abc123.mp4'
+        assert result['file_path'] == expected_path
         assert result['title'] == 'Test Video'
         assert result['video_id'] == 'abc123'
         assert result['duration'] == 120.5
@@ -103,6 +106,7 @@ class TestVideoDownloader:
         """Test that download returns complete video information dictionary."""
         mock_instance = MagicMock()
         mock_youtube_dl.return_value.__enter__.return_value = mock_instance
+        temp_dir = tempfile.gettempdir()
         mock_instance.extract_info.return_value = {
             'id': 'xyz789',
             'title': 'Another Test',
@@ -110,7 +114,7 @@ class TestVideoDownloader:
             'extractor': 'vimeo',
             'ext': 'mp4'
         }
-        mock_instance.prepare_filename.return_value = '/tmp/xyz789.mp4'
+        mock_instance.prepare_filename.return_value = f'{temp_dir}/xyz789.mp4'
 
         downloader = VideoDownloader()
         result = downloader.download("https://vimeo.com/123456")
@@ -123,10 +127,13 @@ class TestVideoDownloader:
         assert 'platform' in result
 
     @patch('src.video_downloader.yt_dlp.YoutubeDL')
-    def test_download_saves_to_tmp(self, mock_youtube_dl):
-        """Test that videos are saved to /tmp directory."""
+    def test_download_saves_to_temp_directory(self, mock_youtube_dl):
+        """Test that videos are saved to temp directory."""
         mock_instance = MagicMock()
         mock_youtube_dl.return_value.__enter__.return_value = mock_instance
+        temp_dir = tempfile.gettempdir()
+        expected_path = f'{temp_dir}/test123.mp4'
+
         mock_instance.extract_info.return_value = {
             'id': 'test123',
             'title': 'Test',
@@ -134,18 +141,20 @@ class TestVideoDownloader:
             'extractor': 'youtube',
             'ext': 'mp4'
         }
-        mock_instance.prepare_filename.return_value = '/tmp/test123.mp4'
+        mock_instance.prepare_filename.return_value = expected_path
 
-        downloader = VideoDownloader(download_dir="/tmp")
+        downloader = VideoDownloader()
         result = downloader.download("https://youtube.com/watch?v=test123")
 
-        assert result['file_path'].startswith('/tmp')
+        assert result['file_path'] == expected_path
+        assert str(downloader.download_dir) in result['file_path']
 
     @patch('src.video_downloader.yt_dlp.YoutubeDL')
     def test_download_accepts_quiet_flag(self, mock_youtube_dl):
         """Test that quiet flag is passed to yt-dlp."""
         mock_instance = MagicMock()
         mock_youtube_dl.return_value.__enter__.return_value = mock_instance
+        temp_dir = tempfile.gettempdir()
         mock_instance.extract_info.return_value = {
             'id': 'quiet123',
             'title': 'Quiet Test',
@@ -153,7 +162,7 @@ class TestVideoDownloader:
             'extractor': 'youtube',
             'ext': 'mp4'
         }
-        mock_instance.prepare_filename.return_value = '/tmp/quiet123.mp4'
+        mock_instance.prepare_filename.return_value = f'{temp_dir}/quiet123.mp4'
 
         downloader = VideoDownloader()
         result = downloader.download("https://youtube.com/watch?v=quiet123", quiet=True)

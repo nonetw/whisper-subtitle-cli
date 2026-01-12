@@ -9,6 +9,7 @@ Outputs both SRT format (for video players) and plain text (for reading).
 import click
 import os
 import sys
+import tempfile
 from pathlib import Path
 from datetime import datetime
 
@@ -103,7 +104,7 @@ def main(video_input, model, language, output, keep_audio):
 
             # Check for available subtitles first
             click.echo("\nChecking for available subtitles...")
-            downloader = VideoDownloader(download_dir="/tmp")
+            downloader = VideoDownloader()  # Uses system temp directory by default
 
             subtitles = downloader.get_available_subtitles(video_input)
 
@@ -181,7 +182,7 @@ def main(video_input, model, language, output, keep_audio):
 
             click.echo(f"✓ Downloaded: {video_title}")
             click.echo(f"  Duration: {video_info['duration']:.1f}s")
-            click.echo(f"✓ Saved to /tmp (OS will clean up automatically)")
+            click.echo(f"✓ Saved to temp directory (OS will clean up automatically)")
         else:
             # Existing file path behavior
             video_path = Path(video_input).resolve()
