@@ -9,9 +9,10 @@ Extract subtitles from video files or YouTube URLs using AI transcription (OpenA
 - **YouTube & URL Support**: Process videos from YouTube, Vimeo, Twitch, and [1000+ platforms](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
 - **Subtitle Download**: Automatically download existing YouTube subtitles (much faster than transcription)
 - **AI-Powered Transcription**: Uses Faster Whisper for accurate speech-to-text
+- **Subtitle Translation**: Translate subtitles to any language using local Ollama models (no cloud API needed)
 - **Dual Output**: Creates both SRT (with timestamps) and TXT (plain text) files
 - **Multiple Languages**: Auto-detects language or accepts manual specification
-- **Flexible Models**: Choose from 5 model sizes balancing speed vs accuracy
+- **Flexible Models**: Choose from 5 Whisper model sizes balancing speed vs accuracy
 
 ## Installation
 
@@ -19,6 +20,7 @@ Extract subtitles from video files or YouTube URLs using AI transcription (OpenA
 - Python 3.11 or 3.12 (not 3.13+, due to dependency compatibility)
 - Poetry
 - ffmpeg
+- Ollama (optional, for subtitle translation)
 
 ```bash
 # Install ffmpeg
@@ -109,7 +111,49 @@ Downloading English subtitle...
 - 🔄 **Automatic fallback**: If no subtitles exist, automatically transcribes
 - 🎛️ **User choice**: Select option 0 to transcribe even when subtitles available
 
-### Model Options
+### Subtitle Translation (Ollama)
+
+After creating or downloading subtitles, you can translate them to another language using a local Ollama model:
+
+```bash
+python main.py video.mp4
+
+# After transcription completes:
+✓ SRT file created: 20250119_video.srt
+
+Would you like to translate the subtitles? [y/N]: y
+Source language [English]: English
+Target language: Chinese
+
+Using Ollama model: qwen2.5:7b
+
+Translating 150 segments...
+  Translating segment 150/150...
+✓ Translated SRT created: 20250119_video.Chinese.srt
+
+✅ Done!
+```
+
+**Requirements:**
+- Ollama must be installed and running (`ollama serve`)
+- A model must be downloaded (`ollama pull qwen2.5:7b`)
+- See [INSTALL.md](INSTALL.md) for Ollama setup instructions
+
+**Configuration:**
+Edit `config.json` to change the translation model or batch size:
+```json
+{
+  "ollama": {
+    "model": "qwen2.5:7b",
+    "base_url": "http://localhost:11434",
+    "batch_size": 50
+  }
+}
+```
+
+**Note:** Translation uses Ollama's local API only. The `base_url` can point to a remote Ollama server, but other APIs (OpenAI, Claude, etc.) are not supported.
+
+### Whisper Model Options
 
 | Model | Size | Speed | Accuracy | Use Case |
 |-------|------|-------|----------|----------|
@@ -203,7 +247,13 @@ Make sure you're running the script from the project root directory.
 Use a smaller model (`--model tiny` or `--model base`) or specify the language (`--language en`) to skip auto-detection.
 
 ### Out of memory
-Use a smaller model. Try `--model base` or `--model tiny` for lower memory usage (see Model Options table above for sizes).
+Use a smaller model. Try `--model base` or `--model tiny` for lower memory usage (see Whisper Model Options table above for sizes).
+
+### Translation fails / Ollama errors
+- Make sure Ollama is running: `ollama serve`
+- Verify the model is downloaded: `ollama list`
+- If not downloaded: `ollama pull qwen2.5:7b`
+- Check Ollama logs for errors
 
 ## License
 

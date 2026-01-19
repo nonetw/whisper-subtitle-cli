@@ -61,8 +61,10 @@ Configure the Ollama model and API URL in `config.json` at the project root:
 ```
 
 - **model**: The Ollama model to use for translation (default: `qwen2.5:7b`)
-- **base_url**: Ollama API URL (default: `http://localhost:11434`)
+- **base_url**: Ollama API URL, can point to remote Ollama server (default: `http://localhost:11434`)
 - **batch_size**: Number of segments to translate per API call (default: `50`)
+
+**Note:** Only Ollama API is supported. Other APIs (OpenAI, Claude, etc.) are not compatible.
 
 ### CLI Options
 - Whisper model size: tiny, base, small, medium, large (default: medium)

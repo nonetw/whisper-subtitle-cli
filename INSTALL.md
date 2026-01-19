@@ -239,7 +239,68 @@ You should see version information for ffmpeg.
 
 ---
 
-## Step 4: Download the Project
+## Step 4: Install Ollama (Optional - for Translation)
+
+Ollama is required only if you want to **translate subtitles** to another language. Skip this step if you only need transcription.
+
+Ollama runs AI models **locally on your computer** - no API keys or cloud services needed. All translation processing happens on your machine, keeping your data private.
+
+**Note:** This tool only supports Ollama for translation. Other APIs (OpenAI, Claude, etc.) are not supported.
+
+### macOS
+
+```bash
+# Download and install from the official website
+# Visit: https://ollama.com/download
+
+# Or use Homebrew
+brew install ollama
+```
+
+### Linux
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### Windows
+
+Download from https://ollama.com/download
+
+### Start Ollama and Download a Model
+
+After installation, start the Ollama service and download a translation model:
+
+```bash
+# Start Ollama service (runs in background)
+ollama serve
+
+# In a new terminal, download the default translation model
+ollama pull qwen2.5:7b
+```
+
+**Model options for translation:**
+| Model | Size | Quality | Speed |
+|-------|------|---------|-------|
+| `qwen2.5:3b` | ~2GB | Good | Fast |
+| `qwen2.5:7b` | ~4.5GB | Better (default) | Medium |
+| `llama3:8b` | ~4.7GB | Good | Medium |
+| `qwen2.5:14b` | ~9GB | Best | Slow |
+
+Choose based on your hardware. Larger models need more RAM/VRAM.
+
+### Verify Ollama installation
+
+```bash
+# Check if Ollama is running
+ollama list
+```
+
+You should see the model you downloaded (e.g., `qwen2.5:7b`).
+
+---
+
+## Step 5: Download the Project
 
 ### Option A: Using Git (if you have it)
 
@@ -264,7 +325,7 @@ cd whisper-subtitle-cli
 
 ---
 
-## Step 5: Install Project Dependencies
+## Step 6: Install Project Dependencies
 
 Now we'll use Poetry to install all the required Python packages.
 
@@ -279,13 +340,25 @@ poetry install --no-root
 This will:
 - Create a virtual environment (isolated Python environment for this project)
 - Download and install all required packages
-- Take a few minutes, especially for the Whisper AI models
 
-**Note**: The first time you run the actual tool, it will download the AI model (1.5GB for the default `medium` model), so expect a longer first run.
+### About Whisper Models (for Transcription)
+
+The **first time you run** the tool, it will automatically download the Whisper AI model. This happens once and is cached for future use.
+
+**Whisper model options (for transcription):**
+| Model | Download Size | RAM Needed | Quality | Speed |
+|-------|---------------|------------|---------|-------|
+| `tiny` | ~39MB | ~1GB | Basic | Fastest |
+| `base` | ~140MB | ~1GB | Good | Fast |
+| `small` | ~470MB | ~2GB | Better | Medium |
+| `medium` | ~1.5GB | ~5GB | High (default) | Slow |
+| `large` | ~2.9GB | ~10GB | Best | Slowest |
+
+The default `medium` model offers a good balance. Use `--model tiny` or `--model base` for faster processing or if you have limited RAM.
 
 ---
 
-## Step 6: Verify Installation
+## Step 7: Verify Installation
 
 Let's make sure everything works!
 
