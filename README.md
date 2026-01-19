@@ -138,16 +138,21 @@ Translating 150 segments...
 - See [INSTALL.md](INSTALL.md) for Ollama setup instructions
 
 **Configuration:**
-Edit `config.json` to change the translation model or batch size:
+Edit `config.json` to change the translation model or settings:
 ```json
 {
   "ollama": {
     "model": "qwen2.5:7b",
     "base_url": "http://localhost:11434",
-    "batch_size": 50
+    "batch_size": 50,
+    "keep_alive": "10m"
   }
 }
 ```
+
+- `model`: Ollama model for translation
+- `batch_size`: Segments per API call (higher = better context, more memory)
+- `keep_alive`: How long model stays loaded (`"10m"`, `"1h"`, `"-1"` for indefinitely)
 
 **Note:** Translation uses Ollama's local API only. The `base_url` can point to a remote Ollama server, but other APIs (OpenAI, Claude, etc.) are not supported.
 

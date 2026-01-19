@@ -19,7 +19,8 @@ def load_config() -> dict:
         "ollama": {
             "model": "qwen2.5:7b",
             "base_url": "http://localhost:11434",
-            "batch_size": 50
+            "batch_size": 50,
+            "keep_alive": "10m"
         }
     }
 
@@ -37,7 +38,7 @@ def load_config() -> dict:
 class OllamaTranslator:
     """Translator using local Ollama API for subtitle translation with batch processing."""
 
-    def __init__(self, model: str = None, base_url: str = None, batch_size: int = None):
+    def __init__(self, model: str = None, base_url: str = None, batch_size: int = None, keep_alive: str = None):
         """
         Initialize the translator with Ollama settings.
 
@@ -45,11 +46,13 @@ class OllamaTranslator:
             model: Ollama model name (e.g., 'qwen2.5:7b'). Loads from config if not provided.
             base_url: Ollama API base URL. Loads from config if not provided.
             batch_size: Number of segments per batch. Loads from config if not provided.
+            keep_alive: How long to keep model loaded (e.g., '10m', '1h', '-1'). Loads from config if not provided.
         """
         config = load_config()
         self.model = model or config['ollama']['model']
         self.base_url = base_url or config['ollama']['base_url']
         self.batch_size = batch_size or config['ollama'].get('batch_size', 50)
+        self.keep_alive = keep_alive or config['ollama'].get('keep_alive', '10m')
 
     def _call_ollama(self, prompt: str, timeout: int = 120) -> str:
         """
@@ -72,7 +75,8 @@ class OllamaTranslator:
                 json={
                     "model": self.model,
                     "prompt": prompt,
-                    "stream": False
+                    "stream": False,
+                    "keep_alive": self.keep_alive
                 },
                 timeout=timeout
             )

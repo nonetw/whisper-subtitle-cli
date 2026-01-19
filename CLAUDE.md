@@ -55,7 +55,8 @@ Configure the Ollama model and API URL in `config.json` at the project root:
   "ollama": {
     "model": "qwen2.5:7b",
     "base_url": "http://localhost:11434",
-    "batch_size": 50
+    "batch_size": 50,
+    "keep_alive": "10m"
   }
 }
 ```
@@ -63,6 +64,10 @@ Configure the Ollama model and API URL in `config.json` at the project root:
 - **model**: The Ollama model to use for translation (default: `qwen2.5:7b`)
 - **base_url**: Ollama API URL, can point to remote Ollama server (default: `http://localhost:11434`)
 - **batch_size**: Number of segments to translate per API call (default: `50`)
+- **keep_alive**: How long to keep the model loaded in memory after a request (default: `10m`)
+  - `"5m"`, `"10m"`, `"1h"` - duration values
+  - `"-1"` - keep loaded indefinitely
+  - `"0"` - unload immediately after request
 
 **Note:** Only Ollama API is supported. Other APIs (OpenAI, Claude, etc.) are not compatible.
 
