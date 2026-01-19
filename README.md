@@ -1,6 +1,6 @@
 # whisper-subtitle-cli
 
-Extract subtitles from video files or YouTube URLs using AI transcription (OpenAI Whisper). Generates both SRT files for video playback and plain text files for easy reading.
+Extract subtitles from video files or YouTube URLs using AI transcription (OpenAI Whisper). Generates SRT subtitle files for video playback.
 
 > **Note**: This project was built with AI assistance.
 
@@ -10,7 +10,6 @@ Extract subtitles from video files or YouTube URLs using AI transcription (OpenA
 - **Subtitle Download**: Automatically download existing YouTube subtitles (much faster than transcription)
 - **AI-Powered Transcription**: Uses Faster Whisper for accurate speech-to-text
 - **Subtitle Translation**: Translate subtitles to any language using local Ollama models (no cloud API needed)
-- **Dual Output**: Creates both SRT (with timestamps) and TXT (plain text) files
 - **Multiple Languages**: Auto-detects language or accepts manual specification
 - **Flexible Models**: Choose from 5 Whisper model sizes balancing speed vs accuracy
 
@@ -49,10 +48,9 @@ Extract subtitles from a YouTube URL:
 python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-This creates three files with date prefix (YYYYMMDD format):
+This creates an SRT file with date prefix (YYYYMMDD format):
 - `YYYYMMDD_video.srt` or `YYYYMMDD_Video_Title.srt` - Subtitle file with timestamps (for video players)
-- `YYYYMMDD_video.txt` or `YYYYMMDD_Video_Title.txt` - Plain text transcript (for reading)
-- `YYYYMMDD_video.timestamped.txt` or `YYYYMMDD_Video_Title.timestamped.txt` - Timestamped text (for translation)
+- `YYYYMMDD_video.Chinese.srt` - Translated subtitle (if translation is used)
 
 **Note**:
 - Filenames use underscores instead of spaces for easier command line usage (e.g., `My Video.mp4` → `YYYYMMDD_My_Video.srt`)
@@ -189,13 +187,6 @@ Hello, world!
 This is a test.
 ```
 
-### Plain Text Format (video.txt)
-```
-Hello, world!
-
-This is a test.
-```
-
 ## Supported Formats
 
 - **Local Video Files**: Any format supported by ffmpeg (MP4, MKV, AVI, MOV, WebM, FLV, etc.)
@@ -219,20 +210,16 @@ poetry run pytest tests/test_transcriber.py -v
 whisper-subtitle-cli/
 ├── src/
 │   ├── audio_extractor.py     # Extract audio from video
-│   ├── transcriber.py          # AI transcription
-│   ├── subtitle_writer.py      # Write SRT and TXT files
-│   └── video_downloader.py     # Download videos from URLs
-├── tests/                      # Unit and integration tests
-│   ├── test_audio_extractor.py
-│   ├── test_transcriber.py
-│   ├── test_subtitle_writer.py
-│   ├── test_video_downloader.py
-│   └── test_main_integration.py
-├── main.py                     # CLI entry point
-├── pyproject.toml              # Poetry dependencies
-├── .python-version             # Python version for pyenv
-├── README.md                   # User documentation
-└── CLAUDE.md                   # Project documentation
+│   ├── transcriber.py         # AI transcription (Whisper)
+│   ├── subtitle_writer.py     # Write SRT files
+│   ├── translator.py          # Subtitle translation (Ollama)
+│   └── video_downloader.py    # Download videos from URLs
+├── tests/                     # Unit and integration tests
+├── main.py                    # CLI entry point
+├── config.json                # Ollama configuration
+├── pyproject.toml             # Poetry dependencies
+├── .python-version            # Python version for pyenv
+└── README.md                  # Documentation
 ```
 
 ## Troubleshooting
