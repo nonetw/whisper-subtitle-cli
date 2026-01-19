@@ -88,6 +88,7 @@ whisper-subtitle-cli/
 │   ├── test_translator.py
 │   └── test_main_integration.py
 ├── pyproject.toml
+├── .python-version         # Python version for pyenv
 └── CLAUDE.md
 ```
 

@@ -16,7 +16,7 @@ Extract subtitles from video files or YouTube URLs using AI transcription (OpenA
 ## Installation
 
 **Prerequisites:**
-- Python 3.11 or 3.12
+- Python 3.11 or 3.12 (not 3.13+, due to dependency compatibility)
 - Poetry
 - ffmpeg
 
@@ -29,7 +29,7 @@ brew install ffmpeg  # macOS
 poetry install --no-root
 ```
 
-**New to Python or Poetry?** See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions and troubleshooting.
+**New to Python?** We recommend using [pyenv](https://github.com/pyenv/pyenv) to install the correct Python version. See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions including pyenv setup and troubleshooting.
 
 ## Usage
 
@@ -186,6 +186,7 @@ whisper-subtitle-cli/
 │   └── test_main_integration.py
 ├── main.py                     # CLI entry point
 ├── pyproject.toml              # Poetry dependencies
+├── .python-version             # Python version for pyenv
 ├── README.md                   # User documentation
 └── CLAUDE.md                   # Project documentation
 ```
