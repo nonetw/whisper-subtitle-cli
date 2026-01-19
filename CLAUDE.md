@@ -1,13 +1,13 @@
 # whisper-subtitle-cli
 
 ## Project Overview
-CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI model.
+CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI model, with optional translation via local Ollama API.
 
 ## Requirements
 - Extract audio from video files or YouTube URLs
 - Transcribe audio using Whisper AI (speech-to-text)
 - Output SRT format (with timestamps for video playback)
-- Output timestamped text format (for easy reading/translation)
+- Translate subtitles using local Ollama models
 - Support common video formats: MP4, MKV, AVI, MOV, WebM
 - Support YouTube and 1000+ other video platforms via URLs
 
@@ -17,13 +17,14 @@ CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI mo
 - **Faster Whisper** for AI transcription
 - **ffmpeg** (system dependency) for audio extraction
 - **yt-dlp** for downloading videos from URLs
+- **Ollama** (local) for subtitle translation
 
 ## Output Files
 All subtitle files include a date prefix (YYYYMMDD format) and use underscores instead of spaces for easier command line usage.
 
 **Generated Files**:
 - `YYYYMMDD_video_title.srt` - SRT subtitle file with timestamps (for video playback)
-- `YYYYMMDD_video_title.timestamped.txt` - Timestamped text (for easy reading/translation)
+- `YYYYMMDD_video_title.{Language}.srt` - Translated subtitle file (when translation is used)
 
 **Output Location**:
 - **YouTube/URL inputs**: Saved to system temp directory (platform-specific)
@@ -44,7 +45,24 @@ All subtitle files include a date prefix (YYYYMMDD format) and use underscores i
 - Local files: Uses file's modification date
 - Fallback: Uses current date if neither is available
 
-## Configuration Options
+## Configuration
+
+### Ollama Settings (`config.json`)
+Configure the Ollama model and API URL in `config.json` at the project root:
+
+```json
+{
+  "ollama": {
+    "model": "qwen2.5:7b",
+    "base_url": "http://localhost:11434"
+  }
+}
+```
+
+- **model**: The Ollama model to use for translation (default: `qwen2.5:7b`)
+- **base_url**: Ollama API URL (default: `http://localhost:11434`)
+
+### CLI Options
 - Whisper model size: tiny, base, small, medium, large (default: medium)
 - Language: auto-detect or specify (e.g., en, zh, es)
 - Output directory
@@ -54,15 +72,18 @@ All subtitle files include a date prefix (YYYYMMDD format) and use underscores i
 whisper-subtitle-cli/
 ├── src/
 │   ├── transcriber.py      # Whisper transcription logic
-│   ├── subtitle_writer.py  # SRT and TXT file generation
+│   ├── subtitle_writer.py  # SRT file generation
 │   ├── audio_extractor.py  # Audio extraction from video
-│   └── video_downloader.py # YouTube/URL video downloading
+│   ├── video_downloader.py # YouTube/URL video downloading
+│   └── translator.py       # Ollama translation logic
 ├── main.py                 # CLI entry point
+├── config.json             # Ollama configuration
 ├── tests/
 │   ├── test_transcriber.py
 │   ├── test_subtitle_writer.py
 │   ├── test_audio_extractor.py
 │   ├── test_video_downloader.py
+│   ├── test_translator.py
 │   └── test_main_integration.py
 ├── pyproject.toml
 └── CLAUDE.md
@@ -73,6 +94,7 @@ whisper-subtitle-cli/
 - ffmpeg-python (Python wrapper)
 - click (for CLI interface)
 - yt-dlp (for downloading videos from URLs)
+- requests (for Ollama API calls)
 - pytest (for testing)
 
 ## Current Status
@@ -84,11 +106,9 @@ All core features implemented and tested:
 - ✅ Subtitle download from YouTube (human-made subtitles only)
 - ✅ AI transcription using Faster Whisper
 - ✅ SRT subtitle file generation
-- ✅ Timestamped text file generation
-- ✅ Split timestamped files into chunks for AI translation
+- ✅ Subtitle translation via local Ollama API
 - ✅ CLI interface with options
 - ✅ Temp directory output for URL downloads
-- ✅ 65/65 unit tests passing
 
 ## Usage
 
@@ -96,15 +116,11 @@ All core features implemented and tested:
 ```bash
 # Extract subtitles from a local video file
 python main.py video.mp4
-# Creates files in same directory as video:
-# - YYYYMMDD_video.srt (subtitle file with timestamps)
-# - YYYYMMDD_video.timestamped.txt (for translation/reading)
+# Creates: YYYYMMDD_video.srt (subtitle file with timestamps)
 
 # Extract subtitles from a YouTube URL
 python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 # Creates files in system temp directory (/tmp/ on macOS/Linux)
-# - YYYYMMDD_video_title.srt
-# - YYYYMMDD_video_title.timestamped.txt
 
 # Short YouTube URL format
 python main.py "https://youtu.be/VIDEO_ID"
@@ -165,35 +181,43 @@ Downloading English subtitle...
 - Much faster than transcription (~1 second vs 30-120 seconds)
 - If no subtitles exist, automatically falls back to transcription
 - Option 0 allows transcription even when subtitles are available
-- Creates both SRT and timestamped TXT files when downloading subtitles
 
-### Splitting Timestamped Files for Translation
-After processing a video, you'll be prompted to split the timestamped file into smaller chunks for AI translation:
+### Subtitle Translation (Ollama)
+After creating or downloading subtitles, you can translate them using a local Ollama model:
 
 ```bash
-✓ Timestamped text created: 20260112_video.timestamped.txt
+python main.py video.mp4
 
-Would you like to split the file into chunks for translation? [y/N]: y
-How many segments per chunk? [100]: 100
+# Output:
+✓ SRT file created: 20260119_video.srt
 
-✓ Created 5 chunk files:
-  • 20260112_video.timestamped.chunk001of005.txt
-  • 20260112_video.timestamped.chunk002of005.txt
-  • 20260112_video.timestamped.chunk003of005.txt
-  • 20260112_video.timestamped.chunk004of005.txt
-  • 20260112_video.timestamped.chunk005of005.txt
+Would you like to translate the subtitles? [y/N]: y
+Source language [English]: English
+Target language: Chinese
+
+Using Ollama model: qwen2.5:7b
+
+Translating 150 segments...
+  Translating segment 150/150...
+✓ Translated SRT created: 20260119_video.Chinese.srt
+
+✅ Done! Subtitle extraction complete.
 ```
 
-**Why split files?**
-- Large subtitle files exceed AI translation context windows
-- Chunks of 100 segments (~7,000-10,000 chars) work well with most web AI tools
-- Each chunk maintains timestamp format for easy reassembly
-- Chunk filenames show progress (chunk X of Y)
+**Requirements**:
+- Ollama must be running locally (`ollama serve`)
+- Model must be pulled (`ollama pull qwen2.5:7b`)
 
-**Chunk file naming**:
-- Format: `{filename}.timestamped.chunk{N:03d}of{total:03d}.txt`
-- Zero-padded numbers for proper sorting
-- Example: `20260112_video.timestamped.chunk001of010.txt`
+**Configuration**:
+Edit `config.json` to change the model or API URL:
+```json
+{
+  "ollama": {
+    "model": "llama3:8b",
+    "base_url": "http://localhost:11434"
+  }
+}
+```
 
 ### Available Models
 - **tiny**: Fastest, least accurate (~39MB)
@@ -209,6 +233,9 @@ poetry run pytest -v
 
 # Run specific test file
 poetry run pytest tests/test_transcriber.py -v
+
+# Run translator tests
+poetry run pytest tests/test_translator.py -v
 ```
 
 ## Next Steps (Optional Enhancements)

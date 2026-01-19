@@ -58,7 +58,7 @@ class TestMainWithURLInput:
             mock_writer_instance = MagicMock()
             mock_writer.return_value = mock_writer_instance
 
-            # Run the CLI with a YouTube URL (provide 'n' to skip splitting)
+            # Run the CLI with a YouTube URL (provide 'n' to skip translation)
             result = runner.invoke(main.main, ['https://www.youtube.com/watch?v=abc123', '--output', tmpdir], input='n\n')
 
             # Verify the command succeeded
@@ -71,7 +71,6 @@ class TestMainWithURLInput:
             mock_extractor_instance.extract_audio.assert_called_once()
             mock_transcriber_instance.transcribe.assert_called_once()
             mock_writer_instance.write_srt.assert_called_once()
-            mock_writer_instance.write_timestamped_txt.assert_called_once()
 
     @patch('main.SubtitleWriter')
     @patch('main.Transcriber')
@@ -114,7 +113,7 @@ class TestMainWithURLInput:
             mock_writer_instance = MagicMock()
             mock_writer.return_value = mock_writer_instance
 
-            # Run the CLI (provide 'n' to skip splitting)
+            # Run the CLI (provide 'n' to skip translation)
             result = runner.invoke(main.main, ['https://youtube.com/watch?v=xyz789', '--output', tmpdir], input='n\n')
 
             assert result.exit_code == 0
@@ -152,7 +151,7 @@ class TestMainWithFilePathInput:
             mock_writer_instance = MagicMock()
             mock_writer.return_value = mock_writer_instance
 
-            # Run with file path (provide 'n' to skip splitting)
+            # Run with file path (provide 'n' to skip translation)
             result = runner.invoke(main.main, [str(video_path)], input='n\n')
 
             assert result.exit_code == 0
@@ -185,7 +184,7 @@ class TestMainWithFilePathInput:
             mock_writer_instance = MagicMock()
             mock_writer.return_value = mock_writer_instance
 
-            # Run with file path (provide 'n' to skip splitting)
+            # Run with file path (provide 'n' to skip translation)
             result = runner.invoke(main.main, [str(video_path)], input='n\n')
 
             assert result.exit_code == 0
@@ -232,64 +231,15 @@ class TestMainErrorScenarios:
         assert result.exit_code != 0
 
 
-class TestSplitTimestampedFile:
-    """Integration tests for splitting timestamped files."""
+class TestTranslationPrompt:
+    """Integration tests for translation prompt."""
 
+    @patch('main.OllamaTranslator')
     @patch('main.AudioExtractor')
     @patch('main.Transcriber')
     @patch('main.SubtitleWriter')
-    def test_split_prompt_with_yes_creates_chunks(self, mock_writer, mock_transcriber, mock_extractor):
-        """Test that answering yes to split prompt creates chunk files."""
-        runner = CliRunner()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create a real video file
-            video_path = Path(tmpdir) / 'test_video.mp4'
-            video_path.touch()
-
-            # Mock components
-            mock_extractor_instance = MagicMock()
-            mock_extractor.return_value = mock_extractor_instance
-
-            mock_transcriber_instance = MagicMock()
-            mock_transcriber.return_value = mock_transcriber_instance
-            # Return 250 segments to test splitting
-            mock_segments = [
-                {'start': i * 2.0, 'end': (i + 1) * 2.0, 'text': f'Segment {i + 1}'}
-                for i in range(250)
-            ]
-            mock_transcriber_instance.transcribe.return_value = mock_segments
-
-            # Mock SubtitleWriter - use a real instance for split functionality
-            from src.subtitle_writer import SubtitleWriter
-            real_writer = SubtitleWriter()
-            mock_writer.return_value = real_writer
-
-            # Run with file path and simulate user input: yes to split, 100 segments per chunk
-            result = runner.invoke(
-                main.main,
-                [str(video_path), '--output', tmpdir],
-                input='y\n100\n'  # yes + 100 segments
-            )
-
-            # Verify the command succeeded
-            assert result.exit_code == 0
-
-            # Verify chunk files were created
-            chunk_files = list(Path(tmpdir).glob('*.chunk*.txt'))
-            assert len(chunk_files) == 3  # 250 segments / 100 = 3 chunks
-
-            # Verify chunk naming pattern
-            chunk_names = sorted([f.name for f in chunk_files])
-            assert any('chunk001of003' in name for name in chunk_names)
-            assert any('chunk002of003' in name for name in chunk_names)
-            assert any('chunk003of003' in name for name in chunk_names)
-
-    @patch('main.AudioExtractor')
-    @patch('main.Transcriber')
-    @patch('main.SubtitleWriter')
-    def test_split_prompt_with_no_skips_splitting(self, mock_writer, mock_transcriber, mock_extractor):
-        """Test that answering no to split prompt skips splitting."""
+    def test_translation_prompt_with_no_skips_translation(self, mock_writer, mock_transcriber, mock_extractor, mock_translator):
+        """Test that answering no to translation prompt skips translation."""
         runner = CliRunner()
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -307,25 +257,24 @@ class TestSplitTimestampedFile:
                 {'start': 0.0, 'end': 2.0, 'text': 'Test'}
             ]
 
-            # Mock SubtitleWriter - use a real instance
+            # Mock SubtitleWriter
             from src.subtitle_writer import SubtitleWriter
             real_writer = SubtitleWriter()
             mock_writer.return_value = real_writer
 
-            # Run with file path and simulate user input: no to split
+            # Run with file path and simulate user input: no to translation
             result = runner.invoke(
                 main.main,
                 [str(video_path), '--output', tmpdir],
-                input='n\n'  # no to split
+                input='n\n'  # no to translation
             )
 
             # Verify the command succeeded
             assert result.exit_code == 0
 
-            # Verify NO chunk files were created
-            chunk_files = list(Path(tmpdir).glob('*.chunk*.txt'))
-            assert len(chunk_files) == 0
+            # Verify translator was not called
+            mock_translator.return_value.translate_segments.assert_not_called()
 
-            # Verify regular timestamped.txt file exists
-            timestamped_files = list(Path(tmpdir).glob('*.timestamped.txt'))
-            assert len(timestamped_files) == 1
+            # Verify SRT file exists
+            srt_files = list(Path(tmpdir).glob('*.srt'))
+            assert len(srt_files) == 1

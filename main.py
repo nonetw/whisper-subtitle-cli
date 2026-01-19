@@ -3,7 +3,7 @@
 Video Subtitle Extractor
 
 Extract subtitles from video files using AI transcription (Whisper).
-Outputs both SRT format (for video players) and plain text (for reading).
+Outputs SRT format for video players.
 """
 
 import click
@@ -17,6 +17,7 @@ from src.audio_extractor import AudioExtractor
 from src.transcriber import Transcriber
 from src.subtitle_writer import SubtitleWriter
 from src.video_downloader import VideoDownloader, is_url
+from src.translator import OllamaTranslator, load_config
 
 
 class VideoInput(click.ParamType):
@@ -58,6 +59,67 @@ def get_date_prefix(upload_date: str = None, file_path: Path = None) -> str:
         return datetime.now().strftime('%Y%m%d')
 
 
+def translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name):
+    """
+    Handle subtitle translation workflow.
+
+    Args:
+        segments: List of subtitle segments
+        srt_path: Path to the original SRT file
+        output_dir: Directory for output files
+        date_prefix: Date prefix for filenames
+        base_name: Base name for output files
+    """
+    if not click.confirm('\nWould you like to translate the subtitles?', default=False):
+        return
+
+    source_lang = click.prompt('Source language', default='English')
+    target_lang = click.prompt('Target language')
+
+    # Load config and show model info
+    config = load_config()
+    model_name = config['ollama']['model']
+    click.echo(f"\nUsing Ollama model: {model_name}")
+
+    # Check Ollama connection
+    translator = OllamaTranslator()
+    if not translator.check_connection():
+        click.echo(
+            f"\n❌ Cannot connect to Ollama at {config['ollama']['base_url']}. "
+            "Make sure Ollama is running (ollama serve).",
+            err=True
+        )
+        return
+
+    # Translate with progress indicator
+    click.echo(f"\nTranslating {len(segments)} segments...")
+
+    def progress_callback(current, total):
+        click.echo(f"  Translating segment {current}/{total}...", nl=False)
+        click.echo('\r', nl=False)
+
+    try:
+        translated_segments = translator.translate_segments(
+            segments,
+            source_lang,
+            target_lang,
+            progress_callback=progress_callback
+        )
+        click.echo()  # New line after progress
+
+        # Write translated SRT
+        translated_srt_path = output_dir / f"{date_prefix}_{base_name}.{target_lang}.srt"
+        writer = SubtitleWriter()
+        writer.write_srt(translated_segments, str(translated_srt_path))
+
+        click.echo(f"✓ Translated SRT created: {translated_srt_path.name}")
+
+    except ConnectionError as e:
+        click.echo(f"\n❌ Connection error: {e}", err=True)
+    except RuntimeError as e:
+        click.echo(f"\n❌ Translation error: {e}", err=True)
+
+
 @click.command()
 @click.argument('video_input', type=VideoInput())
 @click.option(
@@ -88,9 +150,7 @@ def main(video_input, model, language, output, keep_audio):
     """
     Extract subtitles from VIDEO_INPUT (file path or URL) using AI transcription.
 
-    Generates two files:
-    - .srt file (for video players with timestamps)
-    - .timestamped.txt file (timestamped text for easy reading/translation)
+    Generates .srt file for video players with timestamps.
 
     Example:
         python main.py video.mp4
@@ -150,40 +210,21 @@ def main(video_input, model, language, output, keep_audio):
                         output_dir = downloader.download_dir  # Use temp directory
 
                     srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
-                    timestamped_txt_path = output_dir / f"{date_prefix}_{base_name}.timestamped.txt"
 
                     # Download subtitle
                     downloader.download_subtitle(video_input, selected_lang, str(srt_path))
 
-                    # Parse the downloaded SRT and create timestamped TXT
+                    # Parse the downloaded SRT for translation
                     writer = SubtitleWriter()
                     segments = writer.parse_srt(str(srt_path))
-                    writer.write_timestamped_txt(segments, str(timestamped_txt_path))
 
                     click.echo(f"✓ Subtitle downloaded: {srt_path}")
-                    click.echo(f"✓ Timestamped text created: {timestamped_txt_path}")
 
-                    # Ask if user wants to split the timestamped file
-                    if click.confirm(f'\nWould you like to split the file into chunks for translation? ({len(segments)} segments total)', default=False):
-                        segments_per_chunk = click.prompt(
-                            'How many segments per chunk?',
-                            type=click.IntRange(min=1),
-                            default=100
-                        )
-
-                        chunk_files = writer.split_timestamped_txt(str(timestamped_txt_path), segments_per_chunk)
-
-                        click.echo(f"\n✓ Created {len(chunk_files)} chunk files:")
-                        for chunk_file in chunk_files:
-                            click.echo(f"  • {Path(chunk_file).name}")
-                        click.echo(f"\nChunk files saved to:")
-                        click.echo(f"  {Path(chunk_files[0]).parent}")
+                    # Offer translation
+                    translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name)
 
                     click.echo("\n✅ Done! Subtitle download complete.")
-                    click.echo(f"\nOutput files:")
-                    click.echo(f"  • {srt_path.name} (for video playback)")
-                    click.echo(f"  • {timestamped_txt_path.name} (easy to copy/translate)")
-                    click.echo(f"\nOutput location:")
+                    click.echo(f"\nOutput files saved to:")
                     click.echo(f"  {output_dir}")
                     return  # Exit early, skip transcription
 
@@ -229,7 +270,6 @@ def main(video_input, model, language, output, keep_audio):
         # Generate output file paths with date prefix
         audio_path = output_dir / f"{date_prefix}_{base_name}.wav"
         srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
-        timestamped_txt_path = output_dir / f"{date_prefix}_{base_name}.timestamped.txt"
 
         # Step 1: Extract audio
         step_num = "[1/4]" if is_url(video_input) else "[1/3]"
@@ -252,30 +292,14 @@ def main(video_input, model, language, output, keep_audio):
 
         # Step 3: Write subtitle files
         step_num = "[3/4]" if is_url(video_input) else "[3/3]"
-        click.echo(f"\n{step_num} Writing subtitle files...")
+        click.echo(f"\n{step_num} Writing subtitle file...")
         writer = SubtitleWriter()
 
         writer.write_srt(segments, str(srt_path))
         click.echo(f"✓ SRT file created: {srt_path}")
 
-        writer.write_timestamped_txt(segments, str(timestamped_txt_path))
-        click.echo(f"✓ Timestamped text created: {timestamped_txt_path}")
-
-        # Ask if user wants to split the timestamped file
-        if click.confirm(f'\nWould you like to split the file into chunks for translation? ({len(segments)} segments total)', default=False):
-            segments_per_chunk = click.prompt(
-                'How many segments per chunk?',
-                type=click.IntRange(min=1),
-                default=100
-            )
-
-            chunk_files = writer.split_timestamped_txt(str(timestamped_txt_path), segments_per_chunk)
-
-            click.echo(f"\n✓ Created {len(chunk_files)} chunk files:")
-            for chunk_file in chunk_files:
-                click.echo(f"  • {Path(chunk_file).name}")
-            click.echo(f"\nChunk files saved to:")
-            click.echo(f"  {Path(chunk_files[0]).parent}")
+        # Step 4: Offer translation (for URL inputs this becomes [4/4])
+        translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name)
 
         # Clean up audio file if not keeping it
         if not keep_audio and audio_path.exists():
@@ -285,12 +309,7 @@ def main(video_input, model, language, output, keep_audio):
             click.echo(f"\n✓ Audio file kept: {audio_path}")
 
         click.echo("\n✅ Done! Subtitle extraction complete.")
-        click.echo(f"\nOutput files:")
-        click.echo(f"  • {srt_path.name} (for video playback)")
-        click.echo(f"  • {timestamped_txt_path.name} (easy to copy/translate)")
-
-        # Show output directory path
-        click.echo(f"\nOutput location:")
+        click.echo(f"\nOutput files saved to:")
         click.echo(f"  {output_dir}")
 
     except FileNotFoundError as e:
