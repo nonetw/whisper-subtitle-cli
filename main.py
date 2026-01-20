@@ -20,9 +20,9 @@ from src.video_downloader import VideoDownloader, is_url
 from src.translator import OllamaTranslator, load_config
 
 
-class VideoInput(click.ParamType):
+class DataInput(click.ParamType):
     """Custom Click parameter type that accepts file paths, URLs, or SRT files."""
-    name = "video_input"
+    name = "data_input"
 
     def convert(self, value, param, ctx):
         # If it's a URL, just return it (we'll validate it during download)
@@ -179,7 +179,7 @@ def handle_srt_translation(srt_path: str, output: str = None):
 
 
 @click.command()
-@click.argument('video_input', type=VideoInput())
+@click.argument('data_input', type=DataInput())
 @click.option(
     '--model',
     default='medium',
@@ -204,38 +204,39 @@ def handle_srt_translation(srt_path: str, output: str = None):
     default=False,
     help='Keep the extracted audio file (WAV)'
 )
-def main(video_input, model, language, output, keep_audio):
+def main(data_input, model, language, output, keep_audio):
     """
-    Extract subtitles from VIDEO_INPUT (file path, URL, or SRT file) using AI transcription.
+    Extract subtitles from DATA_INPUT (file path, URL, or SRT file) using AI transcription.
 
     Generates .srt file for video players with timestamps.
 
-    Example:
-        python main.py video.mp4
-        python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
-        python main.py video.mp4 --model medium --language en
-        python main.py existing.srt  # Translate existing SRT file
+    \b
+    Examples:
+      python main.py video.mp4
+      python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
+      python main.py video.mp4 --model medium --language en
+      python main.py existing.srt
     """
     try:
         # Handle SRT file input - skip to translation
-        if is_srt_file(video_input):
-            handle_srt_translation(video_input, output)
+        if is_srt_file(data_input):
+            handle_srt_translation(data_input, output)
             return
 
         # Step 0: Handle URL vs file path
         is_url_input = False
         temp_dir_path = None
 
-        if is_url(video_input):
+        if is_url(data_input):
             is_url_input = True
-            click.echo(f"Detected URL: {video_input}")
+            click.echo(f"Detected URL: {data_input}")
 
             # Check for available subtitles first
             click.echo("\nChecking for available subtitles...")
             downloader = VideoDownloader()  # Uses system temp directory by default
             temp_dir_path = downloader.download_dir
 
-            subtitles = downloader.get_available_subtitles(video_input)
+            subtitles = downloader.get_available_subtitles(data_input)
 
             if subtitles:
                 # List available subtitles
@@ -260,7 +261,7 @@ def main(video_input, model, language, output, keep_audio):
                     click.echo(f"\nDownloading {selected_name} subtitle...")
 
                     # Get video ID for output naming
-                    video_info = downloader.get_video_info(video_input)
+                    video_info = downloader.get_video_info(data_input)
                     base_name = video_info['video_id']
 
                     # Get date prefix from video upload date
@@ -276,7 +277,7 @@ def main(video_input, model, language, output, keep_audio):
                     srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
 
                     # Download subtitle
-                    downloader.download_subtitle(video_input, selected_lang, str(srt_path))
+                    downloader.download_subtitle(data_input, selected_lang, str(srt_path))
 
                     # Parse the downloaded SRT for translation
                     writer = SubtitleWriter()
@@ -300,7 +301,7 @@ def main(video_input, model, language, output, keep_audio):
 
             click.echo("\n[0/4] Downloading video...")
 
-            video_info = downloader.download(video_input, quiet=False)
+            video_info = downloader.download(data_input, quiet=False)
 
             video_path = Path(video_info['file_path'])
             video_title = video_info['title']
@@ -314,7 +315,7 @@ def main(video_input, model, language, output, keep_audio):
             click.echo(f"✓ Saved to temp directory (OS will clean up automatically)")
         else:
             # Existing file path behavior
-            video_path = Path(video_input).resolve()
+            video_path = Path(data_input).resolve()
             # Sanitize local filename to replace spaces with underscores
             base_name = VideoDownloader.sanitize_filename(video_path.stem)
 
@@ -336,14 +337,14 @@ def main(video_input, model, language, output, keep_audio):
         srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
 
         # Step 1: Extract audio
-        step_num = "[1/4]" if is_url(video_input) else "[1/3]"
+        step_num = "[1/4]" if is_url(data_input) else "[1/3]"
         click.echo(f"\n{step_num} Extracting audio from video...")
         extractor = AudioExtractor()
         extractor.extract_audio(str(video_path), str(audio_path))
         click.echo(f"✓ Audio extracted to: {audio_path.name}")
 
         # Step 2: Transcribe audio
-        step_num = "[2/4]" if is_url(video_input) else "[2/3]"
+        step_num = "[2/4]" if is_url(data_input) else "[2/3]"
         click.echo(f"\n{step_num} Transcribing audio (model: {model})...")
         if language:
             click.echo(f"      Language: {language}")
@@ -355,7 +356,7 @@ def main(video_input, model, language, output, keep_audio):
         click.echo(f"✓ Transcription complete ({len(segments)} segments)")
 
         # Step 3: Write subtitle files
-        step_num = "[3/4]" if is_url(video_input) else "[3/3]"
+        step_num = "[3/4]" if is_url(data_input) else "[3/3]"
         click.echo(f"\n{step_num} Writing subtitle file...")
         writer = SubtitleWriter()
 
