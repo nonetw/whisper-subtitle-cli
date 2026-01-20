@@ -1,6 +1,6 @@
 {
   "ollama": {
-    "model": "gemma3:4b",
+    "model": "translategemma:4b",
     "base_url": "http://localhost:11434",
     "batch_size": 50,
     "keep_alive": "10m"

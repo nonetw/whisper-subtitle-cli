@@ -125,7 +125,7 @@ Would you like to translate the subtitles? [y/N]: y
 Source language [English]: English
 Target language: Chinese
 
-Using Ollama model: gemma3:4b
+Using Ollama model: translategemma:4b
 
 Translating 150 segments...
   Translating segment 150/150...
@@ -151,7 +151,7 @@ Would you like to translate the subtitles? [y/N]: y
 Source language [English]: English
 Target language: Japanese
 
-Using Ollama model: gemma3:4b
+Using Ollama model: translategemma:4b
 
 Translating 150 segments...
 ✓ Translated SRT created: existing_subtitle.Japanese.srt
@@ -166,7 +166,7 @@ This is useful when:
 
 **Requirements:**
 - Ollama must be installed and running (`ollama serve`)
-- A model must be downloaded (`ollama pull gemma3:4b`)
+- A model must be downloaded (`ollama pull translategemma:4b`)
 - See [INSTALL.md](INSTALL.md) for Ollama setup instructions
 
 **Configuration:**
@@ -174,7 +174,7 @@ Edit `config.json` to change the translation model or settings:
 ```json
 {
   "ollama": {
-    "model": "gemma3:4b",
+    "model": "translategemma:4b",
     "base_url": "http://localhost:11434",
     "batch_size": 50,
     "keep_alive": "10m"
@@ -276,7 +276,7 @@ Use a smaller model. Try `--model base` or `--model tiny` for lower memory usage
 ### Translation fails / Ollama errors
 - Make sure Ollama is running: `ollama serve`
 - Verify the model is downloaded: `ollama list`
-- If not downloaded: `ollama pull gemma3:4b`
+- If not downloaded: `ollama pull translategemma:4b`
 - Check Ollama logs for errors
 
 ## License

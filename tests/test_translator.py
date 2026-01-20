@@ -4,7 +4,25 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, Mock, MagicMock
 
-from src.translator import OllamaTranslator, load_config
+from src.translator import OllamaTranslator, load_config, get_language_code
+
+
+class TestGetLanguageCode:
+    """Tests for the get_language_code function."""
+
+    def test_get_language_code_english(self):
+        """Test language code for English."""
+        assert get_language_code('English') == 'en'
+        assert get_language_code('english') == 'en'
+        assert get_language_code('ENGLISH') == 'en'
+
+    def test_get_language_code_chinese(self):
+        """Test language code for Chinese."""
+        assert get_language_code('Chinese') == 'zh'
+
+    def test_get_language_code_unknown(self):
+        """Test fallback for unknown language."""
+        assert get_language_code('Klingon') == 'kl'
 
 
 class TestLoadConfig:
@@ -24,7 +42,7 @@ class TestLoadConfig:
                 config = load_config()
 
             assert 'ollama' in config
-            assert config['ollama']['model'] == 'gemma3:4b'
+            assert config['ollama']['model'] == 'translategemma:4b'
             assert config['ollama']['base_url'] == 'http://localhost:11434'
             assert config['ollama']['batch_size'] == 50
 
@@ -98,6 +116,30 @@ class TestOllamaTranslator:
             assert translator.model == 'default-model'
             assert translator.base_url == 'http://default:11434'
             assert translator.batch_size == 30
+
+    def test_is_translategemma_true(self):
+        """Test TranslateGemma detection returns True for translategemma models."""
+        translator = OllamaTranslator(model='translategemma:4b', base_url='http://localhost:11434', batch_size=50)
+        assert translator._is_translategemma() is True
+
+        translator2 = OllamaTranslator(model='translategemma:12b', base_url='http://localhost:11434', batch_size=50)
+        assert translator2._is_translategemma() is True
+
+    def test_is_translategemma_false(self):
+        """Test TranslateGemma detection returns False for other models."""
+        translator = OllamaTranslator(model='qwen2.5:7b', base_url='http://localhost:11434', batch_size=50)
+        assert translator._is_translategemma() is False
+
+        translator2 = OllamaTranslator(model='llama3:8b', base_url='http://localhost:11434', batch_size=50)
+        assert translator2._is_translategemma() is False
+
+    def test_translategemma_prompt_format(self):
+        """Test that TranslateGemma uses the correct prompt format."""
+        translator = OllamaTranslator(model='translategemma:4b', base_url='http://localhost:11434', batch_size=50)
+        prompt = translator._build_translategemma_prompt('Hello', 'English', 'Chinese')
+
+        assert 'professional English (en) to Chinese (zh) translator' in prompt
+        assert 'Hello' in prompt
 
     def test_translate_text_success(self, translator):
         """Test successful text translation."""

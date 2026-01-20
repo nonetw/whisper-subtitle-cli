@@ -276,16 +276,20 @@ After installation, start the Ollama service and download a translation model:
 ollama serve
 
 # In a new terminal, download the default translation model
-ollama pull gemma3:4b
+ollama pull translategemma:4b
 ```
 
 **Model options for translation:**
+
+TranslateGemma is Google's specialized translation model, built on Gemma 3 and fine-tuned for 55 languages. It's the recommended choice for subtitle translation.
+
 | Model | Size | Quality | Speed |
 |-------|------|---------|-------|
-| `qwen2.5:3b` | ~2GB | Good | Fast |
-| `gemma3:4b` | ~4.5GB | Better (default) | Medium |
-| `llama3:8b` | ~4.7GB | Good | Medium |
-| `qwen2.5:14b` | ~9GB | Best | Slow |
+| `translategemma:4b` | ~3.3GB | Good (default) | Fast |
+| `translategemma:12b` | ~8.1GB | Better | Medium |
+| `translategemma:27b` | ~17GB | Best | Slow |
+
+Other models (qwen, llama, gemma) also work but TranslateGemma is optimized for translation tasks.
 
 Choose based on your hardware. Larger models need more RAM/VRAM.
 
@@ -296,7 +300,7 @@ Choose based on your hardware. Larger models need more RAM/VRAM.
 ollama list
 ```
 
-You should see the model you downloaded (e.g., `gemma3:4b`).
+You should see the model you downloaded (e.g., `translategemma:4b`).
 
 ---
 

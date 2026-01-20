@@ -7,6 +7,32 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 
 
+# Language name to ISO 639-1 code mapping for TranslateGemma
+LANGUAGE_CODES = {
+    'english': 'en', 'chinese': 'zh', 'spanish': 'es', 'french': 'fr',
+    'german': 'de', 'italian': 'it', 'portuguese': 'pt', 'russian': 'ru',
+    'japanese': 'ja', 'korean': 'ko', 'arabic': 'ar', 'hindi': 'hi',
+    'dutch': 'nl', 'polish': 'pl', 'turkish': 'tr', 'vietnamese': 'vi',
+    'thai': 'th', 'swedish': 'sv', 'danish': 'da', 'norwegian': 'no',
+    'finnish': 'fi', 'greek': 'el', 'czech': 'cs', 'romanian': 'ro',
+    'hungarian': 'hu', 'hebrew': 'he', 'indonesian': 'id', 'malay': 'ms',
+    'tagalog': 'tl', 'ukrainian': 'uk', 'bengali': 'bn', 'tamil': 'ta',
+}
+
+
+def get_language_code(language: str) -> str:
+    """
+    Get ISO 639-1 language code from language name.
+
+    Args:
+        language: Language name (e.g., 'English', 'Chinese')
+
+    Returns:
+        ISO 639-1 code (e.g., 'en', 'zh') or lowercase language name if not found
+    """
+    return LANGUAGE_CODES.get(language.lower(), language.lower()[:2])
+
+
 def load_config() -> dict:
     """
     Load configuration from config.json file.
@@ -17,7 +43,7 @@ def load_config() -> dict:
     config_path = Path(__file__).parent.parent / 'config.json'
     default_config = {
         "ollama": {
-            "model": "gemma3:4b",
+            "model": "translategemma:4b",
             "base_url": "http://localhost:11434",
             "batch_size": 50,
             "keep_alive": "10m"
@@ -43,7 +69,7 @@ class OllamaTranslator:
         Initialize the translator with Ollama settings.
 
         Args:
-            model: Ollama model name (e.g., 'gemma3:4b'). Loads from config if not provided.
+            model: Ollama model name (e.g., 'translategemma:4b'). Loads from config if not provided.
             base_url: Ollama API base URL. Loads from config if not provided.
             batch_size: Number of segments per batch. Loads from config if not provided.
             keep_alive: How long to keep model loaded (e.g., '10m', '1h', '-1'). Loads from config if not provided.
@@ -53,6 +79,10 @@ class OllamaTranslator:
         self.base_url = base_url or config['ollama']['base_url']
         self.batch_size = batch_size or config['ollama'].get('batch_size', 50)
         self.keep_alive = keep_alive or config['ollama'].get('keep_alive', '10m')
+
+    def _is_translategemma(self) -> bool:
+        """Check if the current model is TranslateGemma."""
+        return 'translategemma' in self.model.lower()
 
     def _call_ollama(self, prompt: str, timeout: int = 120) -> str:
         """
@@ -101,6 +131,25 @@ class OllamaTranslator:
         except requests.exceptions.RequestException as e:
             raise RuntimeError(f"Translation failed: {e}")
 
+    def _build_translategemma_prompt(self, text: str, source_lang: str, target_lang: str) -> str:
+        """
+        Build a prompt for TranslateGemma model.
+
+        Args:
+            text: Text to translate
+            source_lang: Source language name
+            target_lang: Target language name
+
+        Returns:
+            Formatted prompt for TranslateGemma
+        """
+        source_code = get_language_code(source_lang)
+        target_code = get_language_code(target_lang)
+
+        return f"""You are a professional {source_lang} ({source_code}) to {target_lang} ({target_code}) translator. Your goal is to accurately convey the meaning and nuances of the original {source_lang} text while adhering to {target_lang} grammar, vocabulary, and cultural sensitivities. Produce only the {target_lang} translation, without any additional explanations or commentary.
+
+{text}"""
+
     def translate_text(self, text: str, source_lang: str, target_lang: str) -> str:
         """
         Translate a single text string using Ollama.
@@ -117,7 +166,10 @@ class OllamaTranslator:
             ConnectionError: If Ollama API is not available
             RuntimeError: If translation fails
         """
-        prompt = f"Translate the following from {source_lang} to {target_lang}. Only output the translation, nothing else:\n\n{text}"
+        if self._is_translategemma():
+            prompt = self._build_translategemma_prompt(text, source_lang, target_lang)
+        else:
+            prompt = f"Translate the following from {source_lang} to {target_lang}. Only output the translation, nothing else:\n\n{text}"
         return self._call_ollama(prompt, timeout=60)
 
     def _build_batch_prompt(
@@ -141,7 +193,16 @@ class OllamaTranslator:
             f"{i + 1}. {text}" for i, text in enumerate(texts)
         )
 
-        prompt = f"""Translate each line from {source_lang} to {target_lang}.
+        if self._is_translategemma():
+            source_code = get_language_code(source_lang)
+            target_code = get_language_code(target_lang)
+            prompt = f"""You are a professional {source_lang} ({source_code}) to {target_lang} ({target_code}) translator. Your goal is to accurately convey the meaning and nuances of the original {source_lang} text while adhering to {target_lang} grammar, vocabulary, and cultural sensitivities.
+
+Translate each numbered line below. Return ONLY the translations with the same line numbers. Keep the exact format "N. translation".
+
+{numbered_lines}"""
+        else:
+            prompt = f"""Translate each line from {source_lang} to {target_lang}.
 Return ONLY the translations with the same line numbers. Keep the exact format "N. translation".
 
 {numbered_lines}"""
