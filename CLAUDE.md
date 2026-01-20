@@ -23,8 +23,9 @@ CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI mo
 All subtitle files include a date prefix (YYYYMMDD format) and use underscores instead of spaces for easier command line usage.
 
 **Generated Files**:
-- `YYYYMMDD_video_title.srt` - SRT subtitle file with timestamps (for video playback)
-- `YYYYMMDD_video_title.{Language}.srt` - Translated subtitle file (when translation is used)
+- `YYYYMMDD_video_id.srt` - SRT subtitle file with timestamps (for URL inputs)
+- `YYYYMMDD_filename.srt` - SRT subtitle file (for local files)
+- `YYYYMMDD_video_id.{Language}.srt` - Translated subtitle file (when translation is used)
 
 **Output Location**:
 - **YouTube/URL inputs**: Saved to system temp directory (platform-specific)
@@ -35,10 +36,8 @@ All subtitle files include a date prefix (YYYYMMDD format) and use underscores i
 - **Custom output**: Use `--output` flag to specify custom directory
 
 **Filename Rules**:
-- Spaces are replaced with underscores (`_`)
-- Invalid characters (`/ \ : * ? " < > |`) are replaced with underscores
-- Leading and trailing underscores are removed
-- Makes files easier to work with in command line
+- **URL inputs**: Uses video ID (e.g., `dQw4w9WgXcQ`) - short and easy to locate video
+- **Local files**: Uses sanitized filename with spaces replaced by underscores
 
 **Date Logic**:
 - YouTube URLs: Uses video's original upload date

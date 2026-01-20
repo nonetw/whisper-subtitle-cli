@@ -76,8 +76,8 @@ class TestMainWithURLInput:
     @patch('main.Transcriber')
     @patch('main.AudioExtractor')
     @patch('main.VideoDownloader')
-    def test_main_with_url_uses_video_title_for_output(self, mock_downloader, mock_extractor, mock_transcriber, mock_writer):
-        """Test that output files use sanitized video title when processing URLs."""
+    def test_main_with_url_uses_video_id_for_output(self, mock_downloader, mock_extractor, mock_transcriber, mock_writer):
+        """Test that output files use video ID when processing URLs."""
         runner = CliRunner()
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -90,14 +90,11 @@ class TestMainWithURLInput:
 
             mock_downloader_instance.download.return_value = {
                 'file_path': f'{tmpdir}/xyz789.mp4',
-                'title': 'My Test Video: Part 1',  # Contains characters that need sanitizing
+                'title': 'My Test Video: Part 1',
                 'video_id': 'xyz789',
                 'duration': 60.0,
                 'platform': 'youtube'
             }
-
-            # Mock the static sanitize_filename method
-            mock_downloader.sanitize_filename = MagicMock(return_value='My_Test_Video__Part_1')
 
             # Create the mock video file
             Path(f'{tmpdir}/xyz789.mp4').touch()
@@ -118,11 +115,11 @@ class TestMainWithURLInput:
 
             assert result.exit_code == 0
 
-            # Verify write_srt was called with sanitized filename
+            # Verify write_srt was called with video ID in filename
             srt_call_args = mock_writer_instance.write_srt.call_args[0]
             srt_path = str(srt_call_args[1])
-            # Should use sanitized title (colon replaced)
-            assert 'My_Test_Video__Part_1' in srt_path
+            # Should use video ID instead of title
+            assert 'xyz789' in srt_path
 
 
 class TestMainWithFilePathInput:

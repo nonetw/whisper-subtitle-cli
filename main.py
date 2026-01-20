@@ -259,9 +259,9 @@ def main(video_input, model, language, output, keep_audio):
 
                     click.echo(f"\nDownloading {selected_name} subtitle...")
 
-                    # Get video title for output naming
+                    # Get video ID for output naming
                     video_info = downloader.get_video_info(video_input)
-                    base_name = VideoDownloader.sanitize_filename(video_info['title'])
+                    base_name = video_info['video_id']
 
                     # Get date prefix from video upload date
                     date_prefix = get_date_prefix(upload_date=video_info.get('upload_date'))
@@ -304,7 +304,7 @@ def main(video_input, model, language, output, keep_audio):
 
             video_path = Path(video_info['file_path'])
             video_title = video_info['title']
-            base_name = VideoDownloader.sanitize_filename(video_title)
+            base_name = video_info['video_id']
 
             # Get date prefix from video upload date
             date_prefix = get_date_prefix(upload_date=video_info.get('upload_date'))
