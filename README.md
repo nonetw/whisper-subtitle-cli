@@ -10,6 +10,7 @@ Extract subtitles from video files or YouTube URLs using AI transcription (OpenA
 - **Subtitle Download**: Automatically download existing YouTube subtitles (much faster than transcription)
 - **AI-Powered Transcription**: Uses Faster Whisper for accurate speech-to-text
 - **Subtitle Translation**: Translate subtitles to any language using local Ollama models (no cloud API needed)
+- **Unattended Mode**: Use `--yes` flag to auto-translate after transcription completes
 - **Multiple Languages**: Auto-detects language or accepts manual specification
 - **Flexible Models**: Choose from 5 Whisper model sizes balancing speed vs accuracy
 
@@ -80,6 +81,49 @@ uv run python main.py "https://youtu.be/VIDEO_ID"  # Short format
 
 # Other platforms (Vimeo, Twitch, etc.)
 uv run python main.py "https://vimeo.com/123456"
+
+# Auto-translate after transcription (no prompts)
+uv run python main.py video.mp4 --yes
+uv run python main.py video.mp4 --language zh --yes  # Chinese → Chinese translation
+```
+
+### The `--yes` Flag
+
+Use `--yes` (or `-y`) to auto-translate after transcription without prompts. Useful when transcription takes a long time and you want to walk away.
+
+```bash
+uv run python main.py video.mp4 --yes
+```
+
+Translation defaults with `--yes`:
+- Source language: value of `--language` if provided, otherwise "English"
+- Target language: "Chinese"
+- Bilingual subtitle: Yes
+
+**Example: URL with no subtitles available**
+```bash
+uv run python main.py "https://youtube.com/..." --language en --yes
+
+# No subtitles found, transcribing...
+# (transcription runs, you can walk away)
+# ✓ SRT file created: 20260123_video_id.srt
+# Auto-translates: English → Chinese, bilingual
+# ✓ Translated SRT created: 20260123_video_id.Chinese.srt
+# ✓ Bilingual SRT created: 20260123_video_id.bilingual.srt
+# ✅ Done!
+```
+
+**Example: URL with subtitles available**
+```bash
+uv run python main.py "https://youtube.com/..." --language en --yes
+
+# Available subtitles:
+#   1. English (en)
+#   2. Spanish (es)
+#   0. Transcribe video instead
+# Which subtitle would you like to download? [0]:    ← still prompts here
+#
+# (after you choose, auto-translates without further prompts)
 ```
 
 ### Subtitle Download (YouTube)

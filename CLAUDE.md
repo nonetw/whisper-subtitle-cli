@@ -82,9 +82,11 @@ Settings are configured in `config.json` at the project root.
 **Note:** Only Ollama API is supported. Other APIs (OpenAI, Claude, etc.) are not compatible.
 
 ### CLI Options
-- Whisper model size: tiny, base, small, medium, large (default: medium)
-- Language: auto-detect or specify (e.g., en, zh, es)
-- Output directory
+- `--model`: Whisper model size: tiny, base, small, medium, large (default: medium)
+- `--language`: Source language code for transcription (e.g., en, zh, es). Auto-detect if not specified.
+- `--output`, `-o`: Output directory for subtitle files
+- `--keep-audio`: Keep the extracted audio file (WAV)
+- `--yes`, `-y`: Auto-accept translation prompts with defaults (see below)
 
 ## Project Structure
 ```
@@ -165,6 +167,9 @@ uv run python main.py video.mp4 --output ./subtitles
 
 # Keep the extracted audio file
 uv run python main.py video.mp4 --keep-audio
+
+# Auto-translate after transcription (no prompts)
+uv run python main.py video.mp4 --yes
 ```
 
 ### YouTube URL Support

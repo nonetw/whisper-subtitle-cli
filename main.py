@@ -122,7 +122,7 @@ def create_bilingual_segments(original_segments, translated_segments):
     return bilingual
 
 
-def translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config):
+def translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config, yes=False, language=None):
     """
     Handle subtitle translation workflow.
 
@@ -133,16 +133,26 @@ def translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, 
         date_prefix: Date prefix for filenames
         base_name: Base name for output files
         config: Configuration dictionary from load_config()
+        yes: If True, skip prompts and use defaults
+        language: Source language code from --language flag (used with --yes)
 
     Returns:
         Translation time in seconds, or None if translation was skipped
     """
-    if not click.confirm('\nWould you like to translate the subtitles?', default=True):
-        return None
+    if yes:
+        # --yes: auto-accept translation with defaults.
+        # Source language uses --language value if provided, otherwise "English".
+        # Target is always "Chinese", bilingual is always enabled.
+        source_lang = language or 'English'
+        target_lang = 'Chinese'
+        want_bilingual = True
+    else:
+        if not click.confirm('\nWould you like to translate the subtitles?', default=True):
+            return None
 
-    source_lang = click.prompt('Source language', default='English')
-    target_lang = click.prompt('Target language', default='Chinese')
-    want_bilingual = click.confirm('Create bilingual subtitle (original + translation)?', default=True)
+        source_lang = click.prompt('Source language', default='English')
+        target_lang = click.prompt('Target language', default='Chinese')
+        want_bilingual = click.confirm('Create bilingual subtitle (original + translation)?', default=True)
 
     # Show model info
     model_name = config['ollama']['model']
@@ -200,7 +210,7 @@ def translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, 
         return None
 
 
-def handle_srt_translation(srt_path: str, output: str, config: dict):
+def handle_srt_translation(srt_path: str, output: str, config: dict, yes: bool = False, language: str = None):
     """
     Handle translation of an existing SRT file.
 
@@ -208,6 +218,8 @@ def handle_srt_translation(srt_path: str, output: str, config: dict):
         srt_path: Path to the SRT file
         output: Output directory from CLI argument (or None)
         config: Configuration dictionary from load_config()
+        yes: If True, skip prompts and use defaults
+        language: Source language code from --language flag (used with --yes)
     """
     srt_file = Path(srt_path)
     click.echo(f"SRT file detected: {srt_file.name}")
@@ -245,7 +257,7 @@ def handle_srt_translation(srt_path: str, output: str, config: dict):
         base_name = rest
 
     # Go directly to translation
-    translation_time = translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config)
+    translation_time = translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config, yes=yes, language=language)
 
     click.echo("\n✅ Done!")
 
@@ -281,7 +293,13 @@ def handle_srt_translation(srt_path: str, output: str, config: dict):
     default=False,
     help='Keep the extracted audio file (WAV)'
 )
-def main(data_input, model, language, output, keep_audio):
+@click.option(
+    '--yes', '-y',
+    is_flag=True,
+    default=False,
+    help='Answer yes to all prompts (use defaults for translation)'
+)
+def main(data_input, model, language, output, keep_audio, yes):
     """
     Extract subtitles from DATA_INPUT (file path, URL, or SRT file) using AI transcription.
 
@@ -300,7 +318,7 @@ def main(data_input, model, language, output, keep_audio):
 
         # Handle SRT file input - skip to translation
         if is_srt_file(data_input):
-            handle_srt_translation(data_input, output, config)
+            handle_srt_translation(data_input, output, config, yes=yes, language=language)
             return
 
         # Step 0: Handle URL vs file path
@@ -326,7 +344,9 @@ def main(data_input, model, language, output, keep_audio):
                     click.echo(f"  {idx}. {info['name']} ({lang_code})")
                 click.echo(f"  0. Transcribe video instead")
 
-                # User selects subtitle
+                # Always prompt for subtitle selection regardless of --yes flag.
+                # This is a fast operation (~1 sec) and the user is still at the terminal.
+                # --yes only affects the translation prompts after transcription.
                 choice = click.prompt(
                     "\nWhich subtitle would you like to download?",
                     type=click.IntRange(0, len(subtitle_list)),
@@ -362,7 +382,7 @@ def main(data_input, model, language, output, keep_audio):
                     click.echo(f"✓ Subtitle downloaded: {srt_path}")
 
                     # Offer translation
-                    translation_time = translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config)
+                    translation_time = translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config, yes=yes, language=language)
 
                     click.echo("\n✅ Done! Subtitle download complete.")
                     click.echo(f"\nOutput files saved to:")
@@ -445,7 +465,7 @@ def main(data_input, model, language, output, keep_audio):
         click.echo(f"✓ SRT file created: {srt_path}")
 
         # Step 4: Offer translation (for URL inputs this becomes [4/4])
-        translation_time = translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config)
+        translation_time = translate_subtitles(segments, srt_path, output_dir, date_prefix, base_name, config, yes=yes, language=language)
 
         # Clean up audio file if not keeping it
         if not keep_audio and audio_path.exists():
