@@ -13,7 +13,7 @@ CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI mo
 
 ## Technical Stack
 - **Python 3.11+**
-- **Poetry** for package management
+- **uv** for package management
 - **Faster Whisper** for AI transcription
 - **ffmpeg** (system dependency) for audio extraction
 - **yt-dlp** for downloading videos from URLs
@@ -95,6 +95,7 @@ whisper-subtitle-cli/
 │   ├── test_translator.py
 │   └── test_main_integration.py
 ├── pyproject.toml
+├── uv.lock                 # uv lock file
 ├── .python-version         # Python version for pyenv
 └── CLAUDE.md
 ```
@@ -125,43 +126,43 @@ All core features implemented and tested:
 ### Basic Usage
 ```bash
 # Extract subtitles from a local video file
-python main.py video.mp4
+uv run python main.py video.mp4
 # Creates: YYYYMMDD_video.srt (subtitle file with timestamps)
 
 # Extract subtitles from a YouTube URL
-python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
-# Creates files in system temp directory (/tmp/ on macOS/Linux)
+uv run python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
+# Creates files in system temp directory (/tmp/ on macOS)
 
 # Short YouTube URL format
-python main.py "https://youtu.be/VIDEO_ID"
+uv run python main.py "https://youtu.be/VIDEO_ID"
 
 # Translate an existing SRT file (skip download/transcription)
-python main.py existing_subtitle.srt
+uv run python main.py existing_subtitle.srt
 # Goes directly to translation prompt
 ```
 
 ### Advanced Options
 ```bash
 # Use a larger model for better accuracy (slower)
-python main.py video.mp4 --model medium
+uv run python main.py video.mp4 --model medium
 
 # Specify language (faster than auto-detect)
-python main.py "https://youtube.com/watch?v=VIDEO_ID" --language en
+uv run python main.py "https://youtube.com/watch?v=VIDEO_ID" --language en
 
 # Save to a different directory
-python main.py video.mp4 --output ./subtitles
+uv run python main.py video.mp4 --output ./subtitles
 
 # Keep the extracted audio file
-python main.py video.mp4 --keep-audio
+uv run python main.py video.mp4 --keep-audio
 ```
 
 ### YouTube URL Support
 ```bash
 # Process any YouTube video
-python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
+uv run python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Works with playlists, shorts, and other platforms
-python main.py "https://vimeo.com/123456"
+uv run python main.py "https://vimeo.com/123456"
 
 # Both downloaded videos and subtitle files are saved to system temp directory
 # OS cleans up temp files automatically
@@ -172,7 +173,7 @@ python main.py "https://vimeo.com/123456"
 When processing a YouTube URL, the tool automatically checks for existing subtitles:
 
 ```bash
-python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
+uv run python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Output:
 Checking for available subtitles...
@@ -200,7 +201,7 @@ Downloading English subtitle...
 After creating or downloading subtitles, you can translate them using a local Ollama model:
 
 ```bash
-python main.py video.mp4
+uv run python main.py video.mp4
 
 # Output:
 ✓ SRT file created: 20260119_video.srt
@@ -248,16 +249,22 @@ Edit `config.json` to change the model, API URL, or batch size:
 - **medium**: High accuracy (default, ~1.5GB)
 - **large**: Best accuracy (~2.9GB)
 
+## Setup
+```bash
+# Install dependencies (creates .venv and installs all packages)
+uv sync
+```
+
 ## Testing
 ```bash
 # Run all tests
-poetry run pytest -v
+uv run pytest -v
 
 # Run specific test file
-poetry run pytest tests/test_transcriber.py -v
+uv run pytest tests/test_transcriber.py -v
 
 # Run translator tests
-poetry run pytest tests/test_translator.py -v
+uv run pytest tests/test_translator.py -v
 ```
 
 ## Next Steps (Optional Enhancements)
