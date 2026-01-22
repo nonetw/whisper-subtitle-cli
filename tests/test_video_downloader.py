@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 import tempfile
+import sys
 
 from src.video_downloader import VideoDownloader, is_url
 
@@ -66,7 +67,10 @@ class TestVideoDownloader:
     def test_downloader_initialization(self):
         """Test VideoDownloader initializes with correct default directory."""
         downloader = VideoDownloader()
-        assert downloader.download_dir == Path(tempfile.gettempdir())
+        if sys.platform == "darwin":
+            assert downloader.download_dir == Path("/tmp")
+        else:
+            assert downloader.download_dir == Path(tempfile.gettempdir())
 
     def test_downloader_custom_directory(self):
         """Test VideoDownloader can use custom download directory."""
@@ -131,7 +135,11 @@ class TestVideoDownloader:
         """Test that videos are saved to temp directory."""
         mock_instance = MagicMock()
         mock_youtube_dl.return_value.__enter__.return_value = mock_instance
-        temp_dir = tempfile.gettempdir()
+        # Use the same logic as VideoDownloader for temp directory
+        if sys.platform == "darwin":
+            temp_dir = "/tmp"
+        else:
+            temp_dir = tempfile.gettempdir()
         expected_path = f'{temp_dir}/test123.mp4'
 
         mock_instance.extract_info.return_value = {
