@@ -349,3 +349,87 @@ class TestOutputDirectoryPriority:
 
             assert result == new_dir
             assert new_dir.exists()
+
+
+class TestDefaultOutputDirectory:
+    """Tests for default output directory: cwd for URLs, video dir for local files."""
+
+    @patch('main.load_config', return_value={'ollama': {'model': 'test', 'base_url': 'http://localhost:11434', 'batch_size': 50, 'keep_alive': '10m'}})
+    @patch('main.VideoDownloader')
+    @patch('main.AudioExtractor')
+    @patch('main.Transcriber')
+    @patch('main.SubtitleWriter')
+    def test_url_input_saves_to_cwd_by_default(self, mock_writer, mock_transcriber, mock_extractor, mock_downloader, mock_config):
+        """URL input without --output should save subtitles to cwd, not temp dir."""
+        runner = CliRunner()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Mock VideoDownloader
+            mock_downloader_instance = MagicMock()
+            mock_downloader.return_value = mock_downloader_instance
+            mock_downloader_instance.get_available_subtitles.return_value = {}
+            mock_downloader_instance.download.return_value = {
+                'file_path': f'{tmpdir}/abc123.mp4',
+                'title': 'Test Video',
+                'video_id': 'abc123',
+                'duration': 60.0,
+                'platform': 'youtube',
+                'upload_date': '20200101'
+            }
+
+            # Create mock video file in temp dir
+            Path(f'{tmpdir}/abc123.mp4').touch()
+
+            # Mock other components
+            mock_extractor.return_value = MagicMock()
+            mock_transcriber_instance = MagicMock()
+            mock_transcriber.return_value = mock_transcriber_instance
+            mock_transcriber_instance.transcribe.return_value = [
+                {'start': 0.0, 'end': 1.0, 'text': 'Test'}
+            ]
+            mock_writer_instance = MagicMock()
+            mock_writer.return_value = mock_writer_instance
+
+            # Run without --output (provide 'n' to skip translation)
+            result = runner.invoke(main.main, ['https://youtube.com/watch?v=abc123'], input='n\n')
+
+            assert result.exit_code == 0
+
+            # Verify write_srt path is in cwd, not in temp dir
+            srt_call_args = mock_writer_instance.write_srt.call_args[0]
+            srt_path = str(srt_call_args[1])
+            assert tmpdir not in srt_path  # Should NOT be in temp dir
+            assert str(Path.cwd()) in srt_path  # Should be in cwd
+
+    @patch('main.load_config', return_value={'ollama': {'model': 'test', 'base_url': 'http://localhost:11434', 'batch_size': 50, 'keep_alive': '10m'}})
+    @patch('main.AudioExtractor')
+    @patch('main.Transcriber')
+    @patch('main.SubtitleWriter')
+    def test_local_file_saves_to_video_dir_by_default(self, mock_writer, mock_transcriber, mock_extractor, mock_config):
+        """Local file without --output should save subtitles to video's directory."""
+        runner = CliRunner()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create video file in a specific directory
+            video_path = Path(tmpdir) / 'my_video.mp4'
+            video_path.touch()
+
+            # Mock components
+            mock_extractor.return_value = MagicMock()
+            mock_transcriber_instance = MagicMock()
+            mock_transcriber.return_value = mock_transcriber_instance
+            mock_transcriber_instance.transcribe.return_value = [
+                {'start': 0.0, 'end': 1.0, 'text': 'Test'}
+            ]
+            mock_writer_instance = MagicMock()
+            mock_writer.return_value = mock_writer_instance
+
+            # Run without --output (provide 'n' to skip translation)
+            result = runner.invoke(main.main, [str(video_path)], input='n\n')
+
+            assert result.exit_code == 0
+
+            # Verify write_srt path is in the video's directory
+            srt_call_args = mock_writer_instance.write_srt.call_args[0]
+            srt_path = str(srt_call_args[1])
+            assert tmpdir in srt_path  # Should be in video's directory

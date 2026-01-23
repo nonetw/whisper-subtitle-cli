@@ -28,13 +28,10 @@ All subtitle files include a date prefix (YYYYMMDD format) and use underscores i
 - `YYYYMMDD_video_id.{Language}.srt` - Translated subtitle file (when translation is used)
 - `YYYYMMDD_video_id.bilingual.srt` - Bilingual subtitle with original + translation (optional)
 
-**Output Location**:
-- **YouTube/URL inputs**: Saved to system temp directory (platform-specific)
-  - macOS: `/tmp/`
-  - Linux/Windows: System temp directory (`tempfile.gettempdir()`)
-  - OS automatically cleans up temp files
+**Output Location** (priority: custom > default):
+- **Custom output**: Use `--output` flag or config `output.directory` to specify directory
 - **Local video files**: Saved to same directory as the video file
-- **Custom output**: Use `--output` flag to specify custom directory
+- **YouTube/URL inputs**: Saved to current working directory (where program is run from)
 
 **Filename Rules**:
 - **URL inputs**: Uses video ID (e.g., `dQw4w9WgXcQ`) - short and easy to locate video

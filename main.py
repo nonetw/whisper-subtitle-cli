@@ -396,8 +396,8 @@ def main(data_input, model, language, output, keep_audio, yes):
                     # Get date prefix from video upload date
                     date_prefix = get_date_prefix(upload_date=video_info.get('upload_date'))
 
-                    # Determine output directory (priority: CLI > config > temp directory)
-                    output_dir = get_output_directory(output, config, downloader.download_dir)
+                    # Determine output directory (priority: CLI > config > cwd)
+                    output_dir = get_output_directory(output, config, Path.cwd())
 
                     srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
 
@@ -456,8 +456,8 @@ def main(data_input, model, language, output, keep_audio, yes):
             click.echo(f"Processing: {video_path.name}")
 
         # Determine output directory (priority: CLI > config > default)
-        # Default: file's directory for local files, temp directory for URLs
-        default_output = video_path.parent
+        # Default: video's directory for local files, cwd for URL downloads
+        default_output = Path.cwd() if is_url_input else video_path.parent
         output_dir = get_output_directory(output, config, default_output)
 
         # Generate output file paths with date prefix

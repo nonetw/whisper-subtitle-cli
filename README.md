@@ -58,7 +58,8 @@ This creates an SRT file with date prefix (YYYYMMDD format):
 
 **Note**:
 - Filenames use underscores instead of spaces for easier command line usage (e.g., `My Video.mp4` → `YYYYMMDD_My_Video.srt`)
-- When processing URLs, videos are downloaded to your system's temporary directory and cleaned up automatically by your OS
+- For local files, subtitles are saved in the same directory as the video
+- For URLs, subtitles are saved in the current working directory (videos are downloaded to a temp directory and cleaned up by your OS)
 
 ### Advanced Options
 
