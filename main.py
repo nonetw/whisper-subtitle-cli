@@ -461,7 +461,8 @@ def main(data_input, model, language, output, keep_audio, yes):
         output_dir = get_output_directory(output, config, default_output)
 
         # Generate output file paths with date prefix
-        audio_path = output_dir / f"{date_prefix}_{base_name}.wav"
+        # Audio is temporary - save to video's directory (temp dir for URLs)
+        audio_path = video_path.parent / f"{date_prefix}_{base_name}.wav"
         srt_path = output_dir / f"{date_prefix}_{base_name}.srt"
 
         # Step 1: Extract audio
