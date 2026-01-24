@@ -481,6 +481,7 @@ def main(data_input, model, language, output, keep_audio, yes):
             click.echo("      Language: auto-detect")
 
         transcriber = Transcriber(model_size=model)
+        click.echo(f"      Device: {transcriber.device} ({transcriber.compute_type})")
         transcribe_start = time.time()
         segments = transcriber.transcribe(str(audio_path), language=language_code)
         transcribe_time = time.time() - transcribe_start

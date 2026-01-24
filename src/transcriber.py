@@ -5,22 +5,37 @@ from typing import List, Dict, Optional
 class Transcriber:
     """Transcribes audio files using Faster Whisper."""
 
-    def __init__(self, model_size: str = "medium", device: str = "cpu"):
+    def __init__(self, model_size: str = "medium"):
         """
         Initialize the transcriber with a Whisper model.
+        Automatically detects GPU availability and uses CUDA if possible.
 
         Args:
             model_size: Size of the Whisper model (tiny, base, small, medium, large)
-            device: Device to run on (cpu, cuda)
         """
         self.model_size = model_size
-        self.device = device
+        self.device, self.compute_type = self._detect_device()
         self.model = None
+
+    @staticmethod
+    def _detect_device():
+        """Detect whether CUDA is available and return appropriate device settings."""
+        try:
+            import ctranslate2
+            if ctranslate2.get_cuda_device_count() > 0:
+                return "cuda", "float16"
+        except Exception:
+            pass
+        return "cpu", "int8"
 
     def _load_model(self):
         """Lazy load the Whisper model when needed."""
         if self.model is None:
-            self.model = WhisperModel(self.model_size, device=self.device)
+            self.model = WhisperModel(
+                self.model_size,
+                device=self.device,
+                compute_type=self.compute_type,
+            )
 
     def transcribe(
         self,
