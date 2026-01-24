@@ -4,6 +4,26 @@ Extract subtitles from video files or YouTube URLs using AI transcription (OpenA
 
 > **Note**: This project was built with AI assistance.
 
+## Quick Start
+
+```bash
+# Install prerequisites: uv, ffmpeg, ollama (optional, for translation)
+brew install ffmpeg
+uv sync                   # CPU/CUDA
+uv sync --extra mlx       # Apple Silicon (Metal GPU)
+
+# Local video file
+uv run python main.py video.mp4
+
+# YouTube or URL
+uv run python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
+
+# Translate an existing SRT file
+uv run python main.py existing.srt
+```
+
+---
+
 ## Features
 
 - **YouTube & URL Support**: Process videos from YouTube, Vimeo, Twitch, and [1000+ platforms](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
