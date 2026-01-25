@@ -8,6 +8,8 @@ Outputs SRT format for video players.
 
 import click
 import os
+import platform
+import subprocess
 import sys
 import tempfile
 import time
@@ -281,8 +283,92 @@ def handle_srt_translation(srt_path: str, output: str, config: dict, yes: bool =
         click.echo(f"  Translation: {translation_time:.1f}s")
 
 
+def _has_nvidia_gpu() -> bool:
+    """Check if NVIDIA GPU is available by running nvidia-smi."""
+    try:
+        subprocess.run(
+            ['nvidia-smi'],
+            capture_output=True,
+            check=True
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
+def _check_ffmpeg() -> bool:
+    """Check if ffmpeg is installed."""
+    try:
+        subprocess.run(
+            ['ffmpeg', '-version'],
+            capture_output=True,
+            check=True
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
+def _check_ollama() -> bool:
+    """Check if Ollama is running by pinging the API."""
+    import requests
+    config = load_config()
+    base_url = config.get('ollama', {}).get('base_url', 'http://localhost:11434')
+    try:
+        response = requests.get(f"{base_url}/api/tags", timeout=2)
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
+def run_system_check():
+    """Run system diagnostics and display results."""
+    click.echo("System Check:")
+    click.echo(f"  Platform: {platform.system()} {platform.machine()}")
+
+    # Check Apple Silicon
+    if platform.system() == "Darwin" and platform.machine() == "arm64":
+        click.echo("  Apple Silicon: Yes")
+        try:
+            import mlx_whisper  # noqa: F401
+            click.echo("  mlx-whisper: Installed (Metal GPU acceleration available)")
+        except ImportError:
+            click.echo("  mlx-whisper: Not installed")
+            click.echo("    → Run 'uv sync --extra mlx' for Metal GPU acceleration")
+    else:
+        # Check NVIDIA/CUDA
+        has_nvidia = _has_nvidia_gpu()
+        click.echo(f"  NVIDIA GPU: {'Found' if has_nvidia else 'Not found'}")
+
+        import torch
+        cuda_available = torch.cuda.is_available()
+        click.echo(f"  CUDA available: {'Yes' if cuda_available else 'No'}")
+
+        if has_nvidia and not cuda_available:
+            click.echo("")
+            click.echo("  ⚠ NVIDIA GPU detected but CUDA is not available.")
+            click.echo("    To enable GPU acceleration:")
+            click.echo("    1. Install CUDA toolkit from https://developer.nvidia.com/cuda-downloads")
+            click.echo("    2. Reinstall PyTorch with CUDA:")
+            click.echo("       pip install torch --index-url https://download.pytorch.org/whl/cu118")
+        elif cuda_available:
+            click.echo(f"  CUDA device: {torch.cuda.get_device_name(0)}")
+
+    # Check ffmpeg
+    ffmpeg_ok = _check_ffmpeg()
+    click.echo(f"  ffmpeg: {'Installed' if ffmpeg_ok else 'Not found'}")
+    if not ffmpeg_ok:
+        click.echo("    → Install with: brew install ffmpeg (macOS) or apt install ffmpeg (Linux)")
+
+    # Check Ollama
+    ollama_ok = _check_ollama()
+    click.echo(f"  Ollama: {'Running' if ollama_ok else 'Not running or not installed'}")
+    if not ollama_ok:
+        click.echo("    → Optional: Install from https://ollama.ai for subtitle translation")
+
+
 @click.command()
-@click.argument('data_input', type=DataInput())
+@click.argument('data_input', type=DataInput(), required=False)
 @click.option(
     '--model',
     default='medium',
@@ -313,7 +399,13 @@ def handle_srt_translation(srt_path: str, output: str, config: dict, yes: bool =
     default=False,
     help='Answer yes to all prompts (use defaults for translation)'
 )
-def main(data_input, model, language, output, keep_audio, yes):
+@click.option(
+    '--check-system',
+    is_flag=True,
+    default=False,
+    help='Check system capabilities (GPU, CUDA, ffmpeg, Ollama)'
+)
+def main(data_input, model, language, output, keep_audio, yes, check_system):
     """
     Extract subtitles from DATA_INPUT (file path, URL, or SRT file) using AI transcription.
 
@@ -326,6 +418,15 @@ def main(data_input, model, language, output, keep_audio, yes):
       python main.py video.mp4 --model medium --language en
       python main.py existing.srt
     """
+    # Handle --check-system flag (runs without requiring data_input)
+    if check_system:
+        run_system_check()
+        return
+
+    # data_input is required for normal operation
+    if data_input is None:
+        raise click.UsageError("Missing argument 'DATA_INPUT'.")
+
     try:
         # Load config for output directory settings
         config = load_config()

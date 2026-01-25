@@ -12,6 +12,9 @@ brew install ffmpeg
 uv sync                   # CPU/CUDA
 uv sync --extra mlx       # Apple Silicon (Metal GPU)
 
+# Check your system (GPU, CUDA, ffmpeg, Ollama)
+uv run python main.py --check-system
+
 # Local video file
 uv run python main.py video.mp4
 
@@ -329,6 +332,25 @@ whisper-subtitle-cli/
 ```
 
 ## Troubleshooting
+
+### System diagnostics
+Run the system check to diagnose issues with GPU, CUDA, ffmpeg, or Ollama:
+```bash
+uv run python main.py --check-system
+```
+
+### GPU not being used / Slow on NVIDIA GPU
+Run the system check to diagnose:
+```bash
+uv run python main.py --check-system
+```
+
+If you see "NVIDIA GPU: Found" but "CUDA available: No":
+1. Install CUDA toolkit from https://developer.nvidia.com/cuda-downloads
+2. Reinstall PyTorch with CUDA support:
+   ```bash
+   pip install torch --index-url https://download.pytorch.org/whl/cu118
+   ```
 
 ### "ffmpeg not found"
 Install ffmpeg using your package manager (see Requirements section).
