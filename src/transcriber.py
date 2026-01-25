@@ -12,7 +12,7 @@ MLX_MODEL_MAP = {
 
 
 class Transcriber:
-    """Transcribes audio files using Faster Whisper or mlx-whisper."""
+    """Transcribes audio files using openai-whisper or mlx-whisper."""
 
     def __init__(self, model_size: str = "medium"):
         """
@@ -28,7 +28,8 @@ class Transcriber:
 
     @staticmethod
     def _detect_backend():
-        """Detect the best backend: mlx on Apple Silicon, faster-whisper otherwise."""
+        """Detect the best backend: mlx on Apple Silicon, openai-whisper otherwise."""
+        # Apple Silicon: prefer mlx-whisper for Metal GPU
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             try:
                 import mlx_whisper  # noqa: F401
@@ -36,24 +37,17 @@ class Transcriber:
             except ImportError:
                 pass
 
-        # Fall back to faster-whisper with CUDA detection
-        try:
-            import ctranslate2
-            if ctranslate2.get_cuda_device_count() > 0:
-                return "faster-whisper", "cuda", "float16"
-        except Exception:
-            pass
-        return "faster-whisper", "cpu", "int8"
+        # Everyone else: use openai-whisper with PyTorch
+        import torch
+        if torch.cuda.is_available():
+            return "openai-whisper", "cuda", "float16"
+        return "openai-whisper", "cpu", "float32"
 
     def _load_model(self):
         """Lazy load the Whisper model when needed."""
-        if self.model is None and self.backend == "faster-whisper":
-            from faster_whisper import WhisperModel
-            self.model = WhisperModel(
-                self.model_size,
-                device=self.device,
-                compute_type=self.compute_type,
-            )
+        if self.model is None and self.backend == "openai-whisper":
+            import whisper
+            self.model = whisper.load_model(self.model_size, device=self.device)
 
     def transcribe(
         self,
@@ -85,7 +79,7 @@ class Transcriber:
             if self.backend == "mlx":
                 return self._transcribe_mlx(audio_path, language)
             else:
-                return self._transcribe_faster_whisper(audio_path, language)
+                return self._transcribe_openai_whisper(audio_path, language)
         except Exception as e:
             raise Exception(f"Transcription failed: {str(e)}")
 
@@ -110,22 +104,21 @@ class Transcriber:
             })
         return result
 
-    def _transcribe_faster_whisper(self, audio_path: str, language: Optional[str]) -> List[Dict]:
-        """Transcribe using faster-whisper."""
+    def _transcribe_openai_whisper(self, audio_path: str, language: Optional[str]) -> List[Dict]:
+        """Transcribe using openai-whisper."""
         self._load_model()
 
-        segments, info = self.model.transcribe(
-            audio_path,
-            language=language,
-            beam_size=5,
-            vad_filter=True,
-        )
+        kwargs = {}
+        if language:
+            kwargs["language"] = language
+
+        output = self.model.transcribe(audio_path, **kwargs)
 
         result = []
-        for segment in segments:
+        for segment in output["segments"]:
             result.append({
-                'start': segment.start,
-                'end': segment.end,
-                'text': segment.text.strip()
+                'start': segment['start'],
+                'end': segment['end'],
+                'text': segment['text'].strip()
             })
         return result

@@ -14,7 +14,7 @@ CLI tool to generate subtitles from video/audio files using OpenAI Whisper AI mo
 ## Technical Stack
 - **Python 3.11+**
 - **uv** for package management
-- **Faster Whisper** for AI transcription (CPU/CUDA)
+- **OpenAI Whisper** for AI transcription (CPU/CUDA)
 - **mlx-whisper** (optional) for AI transcription on Apple Silicon via Metal GPU
 - **ffmpeg** (system dependency) for audio extraction
 - **yt-dlp** for downloading videos from URLs
@@ -112,7 +112,7 @@ whisper-subtitle-cli/
 ```
 
 ## Dependencies
-- faster-whisper
+- openai-whisper
 - mlx-whisper (optional, Apple Silicon)
 - ffmpeg-python (Python wrapper)
 - click (for CLI interface)
@@ -127,7 +127,7 @@ All core features implemented and tested:
 - ✅ Audio extraction from video files
 - ✅ YouTube URL support (and 1000+ other platforms via yt-dlp)
 - ✅ Subtitle download from YouTube (human-made subtitles only)
-- ✅ AI transcription using Faster Whisper
+- ✅ AI transcription using OpenAI Whisper
 - ✅ SRT subtitle file generation
 - ✅ Subtitle translation via local Ollama API (batch processing with recursive retry)
 - ✅ CLI interface with options

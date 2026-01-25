@@ -28,7 +28,7 @@ uv run python main.py existing.srt
 
 - **YouTube & URL Support**: Process videos from YouTube, Vimeo, Twitch, and [1000+ platforms](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
 - **Subtitle Download**: Automatically download existing YouTube subtitles (much faster than transcription)
-- **AI-Powered Transcription**: Uses Faster Whisper for accurate speech-to-text
+- **AI-Powered Transcription**: Uses OpenAI Whisper for accurate speech-to-text
 - **Subtitle Translation**: Translate subtitles to any language using local Ollama models (no cloud API needed)
 - **Unattended Mode**: Use `--yes` flag to auto-translate after transcription completes
 - **Multiple Languages**: Auto-detects language or accepts manual specification
@@ -351,13 +351,11 @@ Use a smaller model. Try `--model base` or `--model tiny` for lower memory usage
 ## License
 
 This project uses:
-- faster-whisper (MIT License)
-- OpenAI Whisper models (MIT License)
+- openai-whisper (MIT License)
 - ffmpeg (LGPL/GPL)
 
 ## Acknowledgments
 
 Built with:
-- [Faster Whisper](https://github.com/guillaumekln/faster-whisper) - Fast Whisper implementation
-- [OpenAI Whisper](https://github.com/openai/whisper) - Original Whisper models
+- [OpenAI Whisper](https://github.com/openai/whisper) - AI speech recognition
 - [FFmpeg](https://ffmpeg.org/) - Audio/video processing
