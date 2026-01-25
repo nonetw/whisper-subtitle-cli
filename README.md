@@ -39,25 +39,10 @@ uv run python main.py existing.srt
 
 ## Installation
 
-**Prerequisites:**
-- Python 3.11 or 3.12 (not 3.13+, due to dependency compatibility)
-- uv (Python package manager)
-- ffmpeg
-- Ollama (optional, for subtitle translation)
-
-```bash
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install ffmpeg
-brew install ffmpeg  # macOS
-# or: sudo apt install ffmpeg  # Linux
-
-# Install project dependencies (uv will automatically install Python if needed)
-uv sync
-```
-
-See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions and troubleshooting.
+See [INSTALL.md](INSTALL.md) for detailed step-by-step instructions, including:
+- Prerequisites (uv, ffmpeg, CUDA, Ollama)
+- GPU acceleration setup (NVIDIA CUDA / Apple Silicon Metal)
+- Troubleshooting common issues
 
 ## Usage
 
@@ -333,42 +318,17 @@ whisper-subtitle-cli/
 
 ## Troubleshooting
 
-### System diagnostics
-Run the system check to diagnose issues with GPU, CUDA, ffmpeg, or Ollama:
+Run system diagnostics to check GPU, CUDA, ffmpeg, and Ollama:
 ```bash
 uv run python main.py --check-system
 ```
 
-### GPU not being used / Slow on NVIDIA GPU
-Run the system check to diagnose:
-```bash
-uv run python main.py --check-system
-```
+**Common issues:**
+- **Slow transcription**: Use `--model tiny` or `--model base`, or specify `--language` to skip auto-detection
+- **Out of memory**: Use a smaller model (see Whisper Model Options above)
+- **Translation fails**: Ensure Ollama is running (`ollama serve`) and model is downloaded (`ollama pull translategemma:4b`)
 
-If you see "NVIDIA GPU: Found" but "CUDA available: No":
-1. Install CUDA toolkit from https://developer.nvidia.com/cuda-downloads
-2. Reinstall PyTorch with CUDA support:
-   ```bash
-   pip install torch --index-url https://download.pytorch.org/whl/cu118
-   ```
-
-### "ffmpeg not found"
-Install ffmpeg using your package manager (see Requirements section).
-
-### "No module named 'src'"
-Make sure you're running the script from the project root directory.
-
-### Slow transcription
-Use a smaller model (`--model tiny` or `--model base`) or specify the language (`--language en`) to skip auto-detection.
-
-### Out of memory
-Use a smaller model. Try `--model base` or `--model tiny` for lower memory usage (see Whisper Model Options table above for sizes).
-
-### Translation fails / Ollama errors
-- Make sure Ollama is running: `ollama serve`
-- Verify the model is downloaded: `ollama list`
-- If not downloaded: `ollama pull translategemma:4b`
-- Check Ollama logs for errors
+See [INSTALL.md](INSTALL.md#common-issues) for detailed troubleshooting.
 
 ## License
 

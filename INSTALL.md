@@ -7,7 +7,8 @@ This guide will walk you through installing `whisper-subtitle-cli` step by step,
 You'll need to install these tools before using this project:
 1. **uv** (Python package manager - also handles Python installation)
 2. **ffmpeg** (audio/video processing tool)
-3. **Ollama** (optional - only needed for subtitle translation)
+3. **CUDA Toolkit** (for NVIDIA GPU acceleration - highly recommended)
+4. **Ollama** (optional - only needed for subtitle translation)
 
 ---
 
@@ -92,7 +93,46 @@ You should see version information for ffmpeg.
 
 ---
 
-## Step 3: Install Ollama (Optional - for Translation)
+## Step 3: Install CUDA Toolkit (for NVIDIA GPU)
+
+**Skip this step if:**
+- You're on Apple Silicon (M1/M2/M3/M4) - use `uv sync --extra mlx` instead in Step 6
+- You don't have an NVIDIA GPU
+- You're okay with slower CPU-only transcription
+
+GPU acceleration makes transcription **5-10x faster**. Without CUDA, a 10-minute video might take 5+ minutes to transcribe; with CUDA, it takes under a minute.
+
+### Check if you have an NVIDIA GPU
+
+```bash
+# Linux
+nvidia-smi
+
+# Windows (PowerShell)
+nvidia-smi
+```
+
+If you see GPU information, you have an NVIDIA GPU and should install CUDA.
+
+### Install CUDA Toolkit
+
+1. Download from https://developer.nvidia.com/cuda-downloads
+2. Select your operating system and follow the installer
+3. Restart your terminal after installation
+
+### Verify CUDA installation
+
+```bash
+nvcc --version
+```
+
+You should see CUDA version information (e.g., `release 11.8` or `release 12.1`).
+
+**Note:** After installing CUDA, you'll also need to install PyTorch with CUDA support. This is covered in Step 6.
+
+---
+
+## Step 4: Install Ollama (Optional - for Translation)
 
 Ollama is required only if you want to **translate subtitles** to another language. Skip this step if you only need transcription.
 
@@ -157,7 +197,7 @@ You should see the model you downloaded (e.g., `translategemma:4b`).
 
 ---
 
-## Step 4: Download the Project
+## Step 5: Download the Project
 
 ### Option A: Using Git (if you have it)
 
@@ -182,7 +222,7 @@ cd whisper-subtitle-cli
 
 ---
 
-## Step 5: Install Project Dependencies
+## Step 6: Install Project Dependencies
 
 From inside the project directory, run:
 
@@ -194,6 +234,32 @@ This will:
 - Automatically download and install the correct Python version (if needed)
 - Create a virtual environment (`.venv/`)
 - Download and install all required packages
+
+### GPU Acceleration Setup
+
+**Apple Silicon (M1/M2/M3/M4):**
+```bash
+# Install with Metal GPU support
+uv sync --extra mlx
+```
+
+**NVIDIA GPU (requires CUDA from Step 3):**
+
+After `uv sync`, install PyTorch with CUDA support:
+```bash
+# For CUDA 11.8
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+
+# For CUDA 12.1
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+```
+
+**Verify GPU detection:**
+```bash
+uv run python main.py --check-system
+```
+
+This shows your system capabilities and confirms GPU acceleration is working.
 
 ### About Whisper Models (for Transcription)
 
@@ -212,7 +278,7 @@ The default `medium` model offers a good balance. Use `--model tiny` or `--model
 
 ---
 
-## Step 6: Verify Installation
+## Step 7: Verify Installation
 
 Let's make sure everything works!
 
@@ -239,6 +305,14 @@ uv run python main.py your-video.mp4
 ```bash
 uv run python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
+
+### Test with an existing subtitle file
+
+```bash
+uv run python main.py existing_subtitle.srt
+```
+
+This skips transcription and goes directly to translation.
 
 ---
 
@@ -275,6 +349,15 @@ uv sync
 ### Slow download speeds
 
 If uv is downloading packages very slowly, check your internet connection or try again later.
+
+### GPU not being used / Slow transcription on NVIDIA GPU
+
+Run the system check to diagnose:
+```bash
+uv run python main.py --check-system
+```
+
+If you see "NVIDIA GPU: Found" but "CUDA available: No", either CUDA Toolkit isn't installed (Step 3) or PyTorch needs CUDA support (Step 6).
 
 ---
 
