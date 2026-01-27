@@ -288,6 +288,75 @@ uv run pytest tests/test_transcriber.py -v
 uv run pytest tests/test_translator.py -v
 ```
 
+## Windows CUDA Support (Maintenance Guide)
+
+### Background
+
+PyTorch on Windows from PyPI is **CPU-only**. To get CUDA support on Windows, we must:
+1. Use PyTorch's wheel index (`https://download.pytorch.org/whl`)
+2. Specify exact CUDA version (e.g., `torch==2.5.1+cu121`)
+
+Linux doesn't have this problem - PyPI torch includes CUDA automatically.
+
+### How It Works
+
+1. **Default behavior** (`uv sync`):
+   - Windows: Installs `torch==2.5.1+cu121` from PyTorch wheel index
+   - Linux/macOS: Installs torch from PyPI (CUDA included on Linux)
+
+2. **If CUDA version mismatch**:
+   - User runs `python main.py --check-system`
+   - Shows driver version and compatible CUDA versions
+   - Suggests override command: `uv pip install torch==X.X.X+cuXXX --index-url ...`
+
+### Configuration Location
+
+- **CUDA_VERSIONS dict** in `main.py`: Maps CUDA versions to driver requirements
+- **DEFAULT_CUDA** in `main.py`: Current default (cu121)
+- **pyproject.toml**: Windows torch version and PyTorch wheel index
+
+### Adding a New CUDA Version
+
+When PyTorch releases support for a new CUDA version (e.g., cu126):
+
+1. **Find minimum driver version** at:
+   https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/
+
+2. **Update `main.py`** - add to CUDA_VERSIONS dict:
+   ```python
+   CUDA_VERSIONS = {
+       "cu118": {"min_driver": 520, "cuda": "11.8", "torch": "2.5.1+cu118"},
+       "cu121": {"min_driver": 525, "cuda": "12.1", "torch": "2.5.1+cu121"},
+       "cu124": {"min_driver": 550, "cuda": "12.4", "torch": "2.5.1+cu124"},
+       "cu126": {"min_driver": 560, "cuda": "12.6", "torch": "2.6.0+cu126"},  # NEW
+   }
+   ```
+
+3. **Update `pyproject.toml`** if changing default:
+   ```toml
+   # Update the Windows torch version
+   "torch==2.6.0+cu126; sys_platform == 'win32'",
+   ```
+
+4. **Update `INSTALL.md`** with new override commands
+
+5. **Update DEFAULT_CUDA** in `main.py` if changing default
+
+### Updating PyTorch Version
+
+When updating to a new PyTorch version (e.g., 2.6.0):
+
+1. Update all torch versions in `CUDA_VERSIONS` dict
+2. Update `pyproject.toml` Windows torch version
+3. Test on Windows if possible, or document for contributors to test
+
+### Why cu121 as Default?
+
+- cu121 (CUDA 12.1) requires driver >= 525
+- Driver 525+ was released in late 2022
+- Most users with reasonably recent NVIDIA drivers should have this
+- Provides good balance between compatibility and performance
+
 ## Next Steps (Optional Enhancements)
 - Add support for batch processing multiple videos/URLs
 - Add progress bars for long videos

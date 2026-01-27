@@ -3,6 +3,10 @@ name = "whisper-subtitle-cli"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+    # Linux/macOS: use standard PyPI torch (CUDA included on Linux)
+    "torch; sys_platform != 'win32'",
+    # Windows default: CUDA 12.1 (requires driver >= 525)
+    "torch==2.5.1+cu121; sys_platform == 'win32'",
     "openai-whisper>=20231117",
     "ffmpeg-python>=0.2.0",
     "click>=8.1.7",
@@ -11,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mlx = ["mlx-whisper>=0.4.0"]
+mlx = ["mlx-whisper>=0.4.0"]  # Apple Silicon
 
 [dependency-groups]
 dev = [
@@ -20,3 +24,13 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Windows CUDA: PyTorch wheel index (contains all CUDA versions)
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl"
+explicit = true
+
+[tool.uv.sources]
+# On Windows, use PyTorch's wheel index to get CUDA-enabled builds
+torch = { index = "pytorch", marker = "sys_platform == 'win32'" }

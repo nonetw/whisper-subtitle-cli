@@ -243,15 +243,28 @@ This will:
 uv sync --extra mlx
 ```
 
-**NVIDIA GPU (requires CUDA from Step 3):**
+**NVIDIA GPU (Linux):**
 
-After `uv sync`, install PyTorch with CUDA support:
+On Linux, `uv sync` automatically installs PyTorch with CUDA support. No extra steps needed.
+
+**NVIDIA GPU (Windows):**
+
+On Windows, `uv sync` installs PyTorch with CUDA 12.1 support by default (requires driver >= 525).
+
+To check if CUDA is working:
 ```bash
-# For CUDA 11.8
-pip install torch --index-url https://download.pytorch.org/whl/cu118
+uv run python main.py --check-system
+```
 
-# For CUDA 12.1
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+If you see "PyTorch CUDA: Not available", your driver may not support CUDA 12.1. The `--check-system` output will show your compatible CUDA versions and the command to fix it.
+
+**Manual CUDA version override (Windows only):**
+```bash
+# For older drivers (>= 520) - use CUDA 11.8
+uv pip install torch==2.5.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+
+# For newer drivers (>= 550) - use CUDA 12.4
+uv pip install torch==2.5.1+cu124 --index-url https://download.pytorch.org/whl/cu124
 ```
 
 **Verify GPU detection:**
@@ -357,7 +370,25 @@ Run the system check to diagnose:
 uv run python main.py --check-system
 ```
 
-If you see "NVIDIA GPU: Found" but "CUDA available: No", either CUDA Toolkit isn't installed (Step 3) or PyTorch needs CUDA support (Step 6).
+The output will show:
+- Your NVIDIA driver version
+- Compatible CUDA versions for your driver
+- Whether PyTorch CUDA is available
+
+**Common issues:**
+
+1. **"NVIDIA GPU: Found" but "PyTorch CUDA: Not available"**
+   - On Windows: Your driver may not support the default CUDA 12.1
+   - Run `--check-system` to see which CUDA versions your driver supports
+   - Follow the suggested `uv pip install` command to install a compatible version
+
+2. **"Compatible PyTorch: cu118" (but project defaults to cu121)**
+   - Your driver is older and only supports CUDA 11.8
+   - Run: `uv pip install torch==2.5.1+cu118 --index-url https://download.pytorch.org/whl/cu118`
+
+3. **No NVIDIA GPU detected**
+   - NVIDIA drivers may not be installed
+   - Install drivers from https://www.nvidia.com/drivers
 
 ---
 

@@ -22,6 +22,30 @@ from src.subtitle_writer import SubtitleWriter
 from src.video_downloader import VideoDownloader, is_url
 from src.translator import OllamaTranslator, load_config, parse_language
 
+# =============================================================================
+# CUDA Version Configuration
+# =============================================================================
+# This mapping defines supported PyTorch CUDA versions and their requirements.
+# Update this when adding support for new CUDA versions.
+#
+# How to add a new CUDA version:
+# 1. Check minimum driver version at:
+#    https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/
+# 2. Add entry to CUDA_VERSIONS dict below
+# 3. Update pyproject.toml with the new torch version/index if needed
+# 4. Update INSTALL.md with the new override command
+#
+# Format: "cuXXX": {"min_driver": NNN, "cuda": "X.X", "torch": "X.X.X+cuXXX"}
+CUDA_VERSIONS = {
+    "cu118": {"min_driver": 520, "cuda": "11.8", "torch": "2.5.1+cu118"},
+    "cu121": {"min_driver": 525, "cuda": "12.1", "torch": "2.5.1+cu121"},
+    "cu124": {"min_driver": 550, "cuda": "12.4", "torch": "2.5.1+cu124"},
+}
+
+# Default CUDA version for Windows (used in pyproject.toml)
+# Change this when updating the default, and update pyproject.toml to match
+DEFAULT_CUDA = "cu121"
+
 
 class DataInput(click.ParamType):
     """Custom Click parameter type that accepts file paths, URLs, or SRT files."""
@@ -283,17 +307,82 @@ def handle_srt_translation(srt_path: str, output: str, config: dict, yes: bool =
         click.echo(f"  Translation: {translation_time:.1f}s")
 
 
-def _has_nvidia_gpu() -> bool:
-    """Check if NVIDIA GPU is available by running nvidia-smi."""
+def _get_nvidia_info() -> dict:
+    """
+    Get NVIDIA GPU information from nvidia-smi.
+
+    Returns:
+        dict with keys:
+        - available: bool - whether NVIDIA GPU is available
+        - driver_version: str or None - driver version (e.g., "535.104.05")
+        - cuda_version: str or None - max supported CUDA version (e.g., "12.2")
+        - gpu_name: str or None - GPU name (e.g., "NVIDIA GeForce RTX 3080")
+    """
     try:
-        subprocess.run(
-            ['nvidia-smi'],
+        result = subprocess.run(
+            ['nvidia-smi', '--query-gpu=driver_version,name', '--format=csv,noheader,nounits'],
             capture_output=True,
+            text=True,
             check=True
         )
-        return True
+        # Parse output: "535.104.05, NVIDIA GeForce RTX 3080"
+        parts = result.stdout.strip().split(', ', 1)
+        driver_version = parts[0] if parts else None
+        gpu_name = parts[1] if len(parts) > 1 else None
+
+        # Get CUDA version from nvidia-smi header
+        header_result = subprocess.run(
+            ['nvidia-smi'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        cuda_version = None
+        for line in header_result.stdout.split('\n'):
+            if 'CUDA Version:' in line:
+                # Parse "CUDA Version: 12.2" from the line
+                import re
+                match = re.search(r'CUDA Version:\s*(\d+\.\d+)', line)
+                if match:
+                    cuda_version = match.group(1)
+                break
+
+        return {
+            'available': True,
+            'driver_version': driver_version,
+            'cuda_version': cuda_version,
+            'gpu_name': gpu_name
+        }
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+        return {'available': False, 'driver_version': None, 'cuda_version': None, 'gpu_name': None}
+
+
+def _get_cuda_compatibility(driver_version: str) -> list:
+    """
+    Get compatible PyTorch CUDA versions based on NVIDIA driver version.
+
+    Args:
+        driver_version: NVIDIA driver version string (e.g., "535.104.05")
+
+    Returns:
+        List of compatible CUDA versions (e.g., ["cu118", "cu121"])
+    """
+    if not driver_version:
+        return []
+
+    try:
+        # Parse major version from driver version
+        major = int(driver_version.split('.')[0])
+    except (ValueError, IndexError):
+        return []
+
+    # Check compatibility against CUDA_VERSIONS config
+    compatible = []
+    for cuda_ver, info in CUDA_VERSIONS.items():
+        if major >= info["min_driver"]:
+            compatible.append(cuda_ver)
+
+    return compatible
 
 
 def _check_ffmpeg() -> bool:
@@ -337,22 +426,73 @@ def run_system_check():
             click.echo("    → Run 'uv sync --extra mlx' for Metal GPU acceleration")
     else:
         # Check NVIDIA/CUDA
-        has_nvidia = _has_nvidia_gpu()
-        click.echo(f"  NVIDIA GPU: {'Found' if has_nvidia else 'Not found'}")
+        nvidia_info = _get_nvidia_info()
+        click.echo(f"  NVIDIA GPU: {'Found' if nvidia_info['available'] else 'Not found'}")
+
+        if nvidia_info['available']:
+            if nvidia_info['gpu_name']:
+                click.echo(f"  GPU Model: {nvidia_info['gpu_name']}")
+            if nvidia_info['driver_version']:
+                click.echo(f"  Driver Version: {nvidia_info['driver_version']}")
+            if nvidia_info['cuda_version']:
+                click.echo(f"  Max CUDA Version: {nvidia_info['cuda_version']}")
+
+            # Show compatible PyTorch CUDA versions
+            compatible = _get_cuda_compatibility(nvidia_info['driver_version'])
+            if compatible:
+                click.echo(f"  Compatible PyTorch: {', '.join(compatible)}")
+
+                # Check if default CUDA version is compatible
+                if DEFAULT_CUDA not in compatible:
+                    click.echo("")
+                    click.echo(f"  ⚠ Warning: This project defaults to {DEFAULT_CUDA}, but your driver only supports:")
+                    click.echo(f"    {', '.join(compatible)}")
+                    # Suggest the best compatible version
+                    if compatible:
+                        best_compatible = compatible[-1]  # Highest compatible version
+                        torch_ver = CUDA_VERSIONS[best_compatible]["torch"]
+                        click.echo("")
+                        click.echo("  → To fix, run:")
+                        click.echo(f"    uv pip install torch=={torch_ver} --index-url https://download.pytorch.org/whl/{best_compatible}")
+                    else:
+                        default_info = CUDA_VERSIONS[DEFAULT_CUDA]
+                        click.echo(f"    You may need to upgrade your NVIDIA driver to version {default_info['min_driver']}+")
+                else:
+                    # Check if user can upgrade to a newer CUDA version
+                    newer_versions = [v for v in compatible if v > DEFAULT_CUDA]
+                    if newer_versions:
+                        best_upgrade = newer_versions[-1]
+                        cuda_ver = CUDA_VERSIONS[best_upgrade]["cuda"]
+                        torch_ver = CUDA_VERSIONS[best_upgrade]["torch"]
+                        click.echo("")
+                        click.echo(f"  ℹ Your driver also supports {best_upgrade} (CUDA {cuda_ver}).")
+                        click.echo(f"    Optional: uv pip install torch=={torch_ver} --index-url https://download.pytorch.org/whl/{best_upgrade}")
 
         import torch
         cuda_available = torch.cuda.is_available()
-        click.echo(f"  CUDA available: {'Yes' if cuda_available else 'No'}")
+        click.echo(f"  PyTorch CUDA: {'Available' if cuda_available else 'Not available'}")
 
-        if has_nvidia and not cuda_available:
+        if nvidia_info['available'] and not cuda_available:
             click.echo("")
-            click.echo("  ⚠ NVIDIA GPU detected but CUDA is not available.")
-            click.echo("    To enable GPU acceleration:")
-            click.echo("    1. Install CUDA toolkit from https://developer.nvidia.com/cuda-downloads")
-            click.echo("    2. Reinstall PyTorch with CUDA:")
-            click.echo("       pip install torch --index-url https://download.pytorch.org/whl/cu118")
+            click.echo("  ⚠ NVIDIA GPU detected but PyTorch CUDA is not available.")
+            click.echo("    This usually means PyTorch was installed without CUDA support,")
+            click.echo("    or there's a CUDA version mismatch with your driver.")
+            if platform.system() == "Windows":
+                compatible = _get_cuda_compatibility(nvidia_info['driver_version'])
+                if compatible and DEFAULT_CUDA not in compatible:
+                    best_compatible = compatible[-1]
+                    torch_ver = CUDA_VERSIONS[best_compatible]["torch"]
+                    click.echo("")
+                    click.echo(f"  → Your driver doesn't support {DEFAULT_CUDA} (default). Try:")
+                    click.echo(f"    uv pip install torch=={torch_ver} --index-url https://download.pytorch.org/whl/{best_compatible}")
+                else:
+                    click.echo("")
+                    click.echo("  → Try reinstalling: uv sync --reinstall-package torch")
+            else:
+                click.echo("    On Linux, PyTorch from PyPI should include CUDA automatically.")
+                click.echo("    Try: uv sync --reinstall-package torch")
         elif cuda_available:
-            click.echo(f"  CUDA device: {torch.cuda.get_device_name(0)}")
+            click.echo(f"  PyTorch CUDA Device: {torch.cuda.get_device_name(0)}")
 
     # Check ffmpeg
     ffmpeg_ok = _check_ffmpeg()
