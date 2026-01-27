@@ -262,9 +262,6 @@ If you see "PyTorch CUDA: Not available", your driver may not support CUDA 12.1.
 ```bash
 # For older drivers (>= 520) - use CUDA 11.8
 uv pip install torch==2.5.1+cu118 --index-url https://download.pytorch.org/whl/cu118
-
-# For newer drivers (>= 550) - use CUDA 12.4
-uv pip install torch==2.5.1+cu124 --index-url https://download.pytorch.org/whl/cu124
 ```
 
 **Verify GPU detection:**

@@ -6,6 +6,7 @@ dependencies = [
     # Linux/macOS: use standard PyPI torch (CUDA included on Linux)
     "torch; sys_platform != 'win32'",
     # Windows default: CUDA 12.1 (requires driver >= 525)
+    # torch 2.5.1 is stable with Whisper (newer versions have compatibility issues)
     "torch==2.5.1+cu121; sys_platform == 'win32'",
     "openai-whisper>=20231117",
     "ffmpeg-python>=0.2.0",

@@ -327,10 +327,12 @@ When PyTorch releases support for a new CUDA version (e.g., cu126):
    CUDA_VERSIONS = {
        "cu118": {"min_driver": 520, "cuda": "11.8", "torch": "2.5.1+cu118"},
        "cu121": {"min_driver": 525, "cuda": "12.1", "torch": "2.5.1+cu121"},
-       "cu124": {"min_driver": 550, "cuda": "12.4", "torch": "2.5.1+cu124"},
-       "cu126": {"min_driver": 560, "cuda": "12.6", "torch": "2.6.0+cu126"},  # NEW
+       # Add new version here if needed
    }
    ```
+
+   **Note:** torch 2.5.1 is pinned because newer versions have compatibility issues with Whisper.
+   Only add new CUDA versions if they offer torch 2.5.1 builds AND benefit users (e.g., older driver support).
 
 3. **Update `pyproject.toml`** if changing default:
    ```toml

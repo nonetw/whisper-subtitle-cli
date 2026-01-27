@@ -26,20 +26,19 @@ from src.translator import OllamaTranslator, load_config, parse_language
 # CUDA Version Configuration
 # =============================================================================
 # This mapping defines supported PyTorch CUDA versions and their requirements.
-# Update this when adding support for new CUDA versions.
+# torch 2.5.1 is pinned because newer versions (2.6.0+) have compatibility issues with Whisper.
 #
 # How to add a new CUDA version:
 # 1. Check minimum driver version at:
 #    https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/
 # 2. Add entry to CUDA_VERSIONS dict below
-# 3. Update pyproject.toml with the new torch version/index if needed
-# 4. Update INSTALL.md with the new override command
+# 3. Update INSTALL.md with the new override command
 #
-# Format: "cuXXX": {"min_driver": NNN, "cuda": "X.X", "torch": "X.X.X+cuXXX"}
+# Note: cu124+ not included because torch 2.5.1 is the max stable version for Whisper,
+# and it's available on cu121. No benefit to using cu124 with the same torch version.
 CUDA_VERSIONS = {
     "cu118": {"min_driver": 520, "cuda": "11.8", "torch": "2.5.1+cu118"},
     "cu121": {"min_driver": 525, "cuda": "12.1", "torch": "2.5.1+cu121"},
-    "cu124": {"min_driver": 550, "cuda": "12.4", "torch": "2.5.1+cu124"},
 }
 
 # Default CUDA version for Windows (used in pyproject.toml)
@@ -457,16 +456,6 @@ def run_system_check():
                     else:
                         default_info = CUDA_VERSIONS[DEFAULT_CUDA]
                         click.echo(f"    You may need to upgrade your NVIDIA driver to version {default_info['min_driver']}+")
-                else:
-                    # Check if user can upgrade to a newer CUDA version
-                    newer_versions = [v for v in compatible if v > DEFAULT_CUDA]
-                    if newer_versions:
-                        best_upgrade = newer_versions[-1]
-                        cuda_ver = CUDA_VERSIONS[best_upgrade]["cuda"]
-                        torch_ver = CUDA_VERSIONS[best_upgrade]["torch"]
-                        click.echo("")
-                        click.echo(f"  ℹ Your driver also supports {best_upgrade} (CUDA {cuda_ver}).")
-                        click.echo(f"    Optional: uv pip install torch=={torch_ver} --index-url https://download.pytorch.org/whl/{best_upgrade}")
 
         import torch
         cuda_available = torch.cuda.is_available()
