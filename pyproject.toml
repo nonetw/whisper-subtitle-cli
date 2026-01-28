@@ -36,3 +36,16 @@ explicit = true
 [tool.uv.sources]
 # On Windows, use PyTorch's wheel index to get CUDA-enabled builds
 torch = { index = "pytorch", marker = "sys_platform == 'win32'" }
+
+[tool.pyright]
+include = ["src", "main.py", "tests"]
+exclude = [".venv", "**/__pycache__"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+reportMissingTypeStubs = false
+reportMissingImports = "none"           # mlx_whisper is optional
+reportArgumentType = "warning"          # demote to warning (many false positives from untyped libs)
+reportGeneralTypeIssues = "warning"     # isinstance(x, any) pattern
+reportAttributeAccessIssue = "warning"  # stable_whisper API
